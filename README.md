@@ -1,4 +1,4 @@
-# k2mosaic [![PyPI](http://img.shields.io/pypi/v/k2mosaic.svg)](https://pypi.python.org/pypi/K2ephem/) [![PyPI](http://img.shields.io/pypi/dm/k2mosaic.svg)](https://pypi.python.org/pypi/K2ephem/) [![Travis status](https://travis-ci.org/barentsen/k2mosaic.svg)](https://travis-ci.org/barentsen/k2mosaic)
+# k2mosaic
 ***Create mosaics of pixel data observed by [NASA's K2 mission](http://keplerscience.arc.nasa.gov).***
 
 
