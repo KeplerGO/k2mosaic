@@ -1,13 +1,10 @@
-"""
-TODO
-----
-* Overlapping TPFs may have a pixel blank in one and filled in the other;
-use the mask to ensure we don't insert the blank one? (cf x,y = 923,580 in C6/Ch16)
-* Harvest WCS'es from FFIs and use them to insert?
+"""Implements the `k2mosaic` command-line tool to stitch K2 data together.
 
 Example usage
 -------------
-mos = KeplerChannelMosaic(channel=15, cadenceno=3051)
+mos = KeplerChannelMosaic(campaign=6, channel=15, cadenceno=3051)
+mos.gather_pixels()
+mos.add_wcs()
 mos.writeto("mymosaic.fits")
 """
 import argparse
