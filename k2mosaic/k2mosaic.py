@@ -200,13 +200,21 @@ def k2mosaic_main(args=None):
     """Exposes k2mosaic to the command line."""
     parser = argparse.ArgumentParser(
                     description='Creates a mosaic of all K2 target pixel files '
-                                'in a given channel during a single cadence.')
+                                'in a given channel during a single cadence.',
+                    epilog='This tool will look for data in the directory '
+                           'specified by the --data_store parameter. '
+                           'If that fails, it will look inside the directory '
+                           'specified by the $K2DATA environment variable. '
+                           'If this fails as well, then the data will be downloaded '
+                           'from the archive on the fly.')
     parser.add_argument('campaign', help='Campaign number.', type=int)
     parser.add_argument('channel', help='Channel number (1-84).', type=int)
     parser.add_argument('cadence', help='Cadence number.', type=int)
     parser.add_argument('-d', '--data_store', metavar='PATH', type=str, default=None,
                         help='Path to the directory that contains a mirror of '
-                             'http://archive.stsci.edu/missions/k2/target_pixel_files/')
+                             'the target pixel files directory in the K2 data archive, '
+                             'i.e. a directory that contains a mirror of '
+                             'http://archive.stsci.edu/missions/k2/target_pixel_files/.')
     args = parser.parse_args(args)
     if args.data_store is None and os.getenv("K2DATA") is not None:
         args.data_store = os.path.join(os.getenv("K2DATA"), 'target_pixel_files')
