@@ -3,7 +3,8 @@
 
 
 ## Installation
-You need to have a working version of Python installed.
+You need to have a working version of Python 3 installed
+(Python 2 support will be added as the package matures).
 If this requirement is met, you can install the latest stable version
 of `k2mosaic` using pip:
 ```
