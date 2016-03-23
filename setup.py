@@ -23,6 +23,7 @@ setup(name='k2mosaic',
       author_email='hello@geert.io',
       url='https://github.com/barentsen/k2mosaic',
       packages=['k2mosaic'],
+      package_data={'k2mosaic': ['data/*.csv']},
       install_requires=['astropy', 'numpy', 'pandas', 'tqdm'],
       entry_points=entry_points,
       classifiers=[
