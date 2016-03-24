@@ -119,7 +119,7 @@ def k2_tpf_urls_by_campaign(campaign, channel=None, obsmode="LC", base_url=K2_TP
         urls = [k2_tpf_url(entry['K2 ID'], campaign, obsmode, base_url)
                 for entry in resp.json()]
         return urls
-    except ValueErroras:
+    except ValueError:
         raise MosaicException("Error: no data found for these parameters.")
 
 
