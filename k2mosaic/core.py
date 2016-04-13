@@ -1,4 +1,4 @@
-"""Implements the `k2mosaic` command-line tool to stitch K2 data together.
+"""Implements the logic to stitch K2 data together into channel mosaics.
 
 Example usage
 -------------
@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from . import PACKAGEDIR
+from . import PACKAGEDIR, mast
 
 KEPLER_CHANNEL_SHAPE = (1070, 1132)  # (rows, cols)
 
@@ -30,8 +30,6 @@ WCS_KEYS = ['TELESCOP', 'INSTRUME', 'CHANNEL', 'MODULE', 'OUTPUT', 'RADESYS',
             'A_ORDER', 'B_ORDER', 'A_2_0', 'A_0_2', 'A_1_1', 'B_2_0', 'B_0_2',
             'B_1_1', 'AP_ORDER', 'BP_ORDER', 'AP_1_0', 'AP_0_1', 'AP_2_0',
             'AP_0_2', 'AP_1_1', 'BP_1_0', 'BP_0_1', 'BP_2_0', 'BP_0_2', 'BP_1_1']
-MAST_URL = 'http://archive.stsci.edu'
-K2_TPF_URL = MAST_URL + '/missions/k2/target_pixel_files/'
 
 
 class MosaicException(Exception):
@@ -68,6 +66,7 @@ class KeplerChannelMosaic(object):
             self.header[kw] = ffi_hdr[kw]
 
     def add_tpf(self, tpf_filename):
+        #print("Adding {}".format(tpf_filename))
         tpf = fits.open(tpf_filename)
         self.add_pixels(tpf)
         del tpf
@@ -79,8 +78,8 @@ class KeplerChannelMosaic(object):
         height, width = aperture_shape[0], aperture_shape[1]
         # Fill the data
         mask = tpf[2].data > 0
-        self.data[row:row+height, col:col+width][mask] = \
-            tpf[1].data["FLUX"][self.cadenceno][mask]
+        idx = self.cadenceno - tpf[1].data["CADENCENO"][0]
+        self.data[row:row+height, col:col+width][mask] = tpf[1].data["FLUX"][idx][mask]
 
     def to_fits(self):
         primary_hdu = fits.PrimaryHDU()
@@ -90,50 +89,6 @@ class KeplerChannelMosaic(object):
 
     def writeto(self, output_fn, clobber=True):
         self.to_fits().writeto(output_fn, clobber=clobber)
-
-
-###
-# Functions to query and retrieve target pixel files using MAST's API
-###
-def get_k2ids(campaign, channel=None, obsmode="LC"):
-    """Returns a `Response` object."""
-    url = MAST_URL + '/k2/data_search/search.php?'
-    url += 'action=Search'
-    url += '&max_records=123456789'
-    url += '&selectedColumnsCsv=ktc_k2_id'
-    url += '&outputformat=JSON'
-    url += '&ktc_target_type={}'.format(obsmode)
-    url += '&sci_campaign={:d}'.format(campaign)
-    if channel is not None:
-        url += '&sci_channel={:d}'.format(channel)
-    return requests.get(url)
-
-
-def k2_tpf_urls_by_campaign(campaign, channel=None, obsmode="LC", base_url=K2_TPF_URL):
-    """Returns a list of URLs pointing to the TPF files of a given campaign/channel."""
-    resp = get_k2ids(campaign, channel, obsmode)
-    if resp.status_code != 200:
-        # This means something went wrong.
-        raise ApiError('GET k2ids {}'.format(resp.status_code))
-    try:
-        urls = [k2_tpf_url(entry['K2 ID'], campaign, obsmode, base_url)
-                for entry in resp.json()]
-        return urls
-    except ValueError:
-        raise MosaicException("Error: no data found for these parameters.")
-
-
-def k2_tpf_url(k2id, campaign, obsmode="LC", base_url=K2_TPF_URL):
-    """Returns the URL of a TPF file given its k2id (i.e. EPIC id)."""
-    k2id = str(k2id)
-    fn_prefix = 'ktwo' + k2id + '-c' + '{0:02d}'.format(campaign)
-    if obsmode == "LC":
-        fn_suffix = "_lpd-targ.fits.gz"
-    else:
-        fn_suffix = "_spd-targ.fits.gz"
-    url = base_url + 'c{0:d}/{1}00000/{2}000/{3}{4}'.format(
-                        campaign, k2id[0:4], k2id[4:6], fn_prefix, fn_suffix)
-    return url
 
 
 ###
@@ -176,49 +131,6 @@ def get_ffi_header(campaign=0, channel=1, FFI_HEADERS_FILE=FFI_HEADERS_FILE):
     df = pd.read_csv(FFI_HEADERS_FILE)
     row = df[(df['campaign'] == campaign) & (df['extension'] == channel)].iloc[0]
     return row.to_dict()
-
-
-###
-# Command line interface
-###
-
-def k2mosaic(campaign, channel, cadenceno, data_store, output_fn=None):
-    mosaic = KeplerChannelMosaic(campaign, channel, cadenceno, data_store=data_store)
-    mosaic.gather_pixels()
-    mosaic.add_wcs()
-    if output_fn is None:
-        output_fn = "k2-mosaic-c{:02d}-ch{:02d}-cad{}.fits".format(
-                                            campaign, channel, cadenceno)
-    print("Writing " + output_fn)
-    mosaic.writeto(output_fn)
-
-
-def k2mosaic_main(args=None):
-    """Exposes k2mosaic to the command line."""
-    parser = argparse.ArgumentParser(
-                    description='Creates a mosaic of all K2 target pixel files '
-                                'in a given channel during a single cadence.',
-                    epilog='This tool will look for data in the directory '
-                           'specified by the --data_store parameter. '
-                           'If that fails, it will look inside the directory '
-                           'specified by the $K2DATA environment variable. '
-                           'If this fails as well, then the data will be downloaded '
-                           'from the archive on the fly.')
-    parser.add_argument('campaign', help='Campaign number.', type=int)
-    parser.add_argument('channel', help='Channel number (1-84).', type=int)
-    parser.add_argument('cadence', help='Cadence number.', type=int)
-    parser.add_argument('-d', '--data_store', metavar='PATH', type=str, default=None,
-                        help='Path to the directory that contains a mirror of '
-                             'the target pixel files directory in the K2 data archive, '
-                             'i.e. a directory that contains a mirror of '
-                             'http://archive.stsci.edu/missions/k2/target_pixel_files/.')
-    args = parser.parse_args(args)
-    if args.data_store is None and os.getenv("K2DATA") is not None:
-        args.data_store = os.path.join(os.getenv("K2DATA"), 'target_pixel_files')
-    try:
-        k2mosaic(args.campaign, args.channel, args.cadence, data_store=args.data_store)
-    except MosaicException as e:
-        print(e)
 
 
 if __name__ == "__main__":

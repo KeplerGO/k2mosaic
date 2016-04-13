@@ -1,7 +1,7 @@
 import pytest
 
-import k2mosaic
+from k2mosaic import ui
 
 def test_main():
     with pytest.raises(SystemExit):
-        k2mosaic.k2mosaic_main()
+        ui.k2mosaic()

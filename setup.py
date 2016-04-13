@@ -13,7 +13,8 @@ elif "testpublish" in sys.argv[-1]:
 # Load the __version__ variable without importing the package
 exec(open('k2mosaic/version.py').read())
 
-entry_points = {'console_scripts': ['k2mosaic = k2mosaic.k2mosaic:k2mosaic_main']}
+entry_points = {'console_scripts':
+                ['k2mosaic = k2mosaic.ui:k2mosaic']}
 
 setup(name='k2mosaic',
       version=__version__,
