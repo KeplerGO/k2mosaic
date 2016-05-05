@@ -19,9 +19,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from . import PACKAGEDIR, mast
-
-KEPLER_CHANNEL_SHAPE = (1070, 1132)  # (rows, cols)
+from . import PACKAGEDIR, KEPLER_CHANNEL_SHAPE, mast
 
 FFI_HEADERS_FILE = os.path.join(PACKAGEDIR, 'data', 'k2-ffi-headers.csv')
 WCS_KEYS = ['TELESCOP', 'INSTRUME', 'CHANNEL', 'MODULE', 'OUTPUT', 'RADESYS',
@@ -37,7 +35,7 @@ class MosaicException(Exception):
 
 
 class KeplerChannelMosaic(object):
-    """Factory an artificial Kepler Full-Frame Channel Image."""
+    """Factory for an artificial Kepler Full-Frame Channel Image."""
     def __init__(self, campaign=0, channel=1, cadenceno=1, data_store=None, shape=KEPLER_CHANNEL_SHAPE):
         self.campaign = campaign
         self.channel = channel
