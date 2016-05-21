@@ -40,19 +40,7 @@ def k2mosaic(**kwargs):
     pass
 
 
-@k2mosaic.command()
-@click.argument('filelist', type=click.File('r'))
-@click.option('-c', '--cadenceno', type=int, default=None,
-              help='Cadence number (default: all).')
-@click.option('-s', '--step', type=int, default=1, metavar='<N>',
-              help='Only mosaic every Nth cadence (default: 1).')
-def mosaic(filelist, cadenceno, step):
-    """Mosaic a set of target pixel files."""
-    tpf_filenames = [path.strip() for path in filelist.read().splitlines()]
-    k2mosaic_mosaic(tpf_filenames, cadencenumbers=cadenceno, step=step)
-
-
-@k2mosaic.command(short_help='Find target pixel files to mosaic.')
+@k2mosaic.command(short_help='Identify target pixel files to mosaic.')
 @click.argument('campaign', type=int)
 @click.argument('channel', type=click.IntRange(0, 84))
 @click.option('--sc/--lc', is_flag=True,
@@ -70,6 +58,18 @@ def find(campaign, channel, sc):
 
 @k2mosaic.command()
 @click.argument('filelist', type=click.File('r'))
+@click.option('-c', '--cadenceno', type=int, default=None,
+              help='Cadence number (default: all).')
+@click.option('-s', '--step', type=int, default=1, metavar='<N>',
+              help='Only mosaic every Nth cadence (default: 1).')
+def mosaic(filelist, cadenceno, step):
+    """Mosaic a set of target pixel files."""
+    tpf_filenames = [path.strip() for path in filelist.read().splitlines()]
+    k2mosaic_mosaic(tpf_filenames, cadencenumbers=cadenceno, step=step)
+
+
+@k2mosaic.command()
+@click.argument('filelist', type=click.File('r'))
 @click.option('-r', '--rows', type=str, default=None, metavar='row1..row2',
               help='Row range (default: crop to data)')
 @click.option('-c', '--cols', type=str, default=None, metavar='col1..col2',
@@ -77,7 +77,7 @@ def find(campaign, channel, sc):
 #@click.option('-r', '--cadenceno', type=int, default=None,
 #              help='Cadence number (default: all).')
 def video(filelist, rows, cols, **kwargs):
-    """Turn a set of Kepler/K2 channel mosaics into a video or gif.
+    """Turn mosaics into a video or gif.
 
     FILELIST should be a text file specifying the mosaic files to include,
     one file or url per line."""
