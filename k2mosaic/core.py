@@ -60,8 +60,11 @@ class KeplerChannelMosaic(object):
     def add_wcs(self):
         """Injects the WCS keywords from an FFI of the same campaign."""
         ffi_hdr = get_ffi_header(self.campaign, self.channel)
-        for kw in WCS_KEYS:
-            self.header[kw] = ffi_hdr[kw]
+        if ffi_hdr is not None:
+            for kw in WCS_KEYS:
+                self.header[kw] = ffi_hdr[kw]
+        else:
+            print('Warning: failed to add a WCS.')
 
     def add_tpf(self, tpf_filename):
         #print("Adding {}".format(tpf_filename))
@@ -69,15 +72,15 @@ class KeplerChannelMosaic(object):
         self.add_pixels(tpf)
         del tpf
 
-    def add_pixels(self, tpf):
-        aperture_shape = tpf[1].data["FLUX"][0].shape
+    def add_pixels(self, tpf, fluxcolumn='FLUX'):
+        aperture_shape = tpf[1].data[fluxcolumn][0].shape
         # Get the pixel coordinates of the corner of the aperture
         col, row = tpf[1].header["1CRV5P"], tpf[1].header["2CRV5P"]
         height, width = aperture_shape[0], aperture_shape[1]
         # Fill the data
         mask = tpf[2].data > 0
         idx = self.cadenceno - tpf[1].data["CADENCENO"][0]
-        self.data[row:row+height, col:col+width][mask] = tpf[1].data["FLUX"][idx][mask]
+        self.data[row:row+height, col:col+width][mask] = tpf[1].data[fluxcolumn][idx][mask]
 
     def to_fits(self):
         primary_hdu = fits.PrimaryHDU()
@@ -126,9 +129,12 @@ def export_ffi_headers(output_fn=FFI_HEADERS_FILE, ffi_store=None):
 
 
 def get_ffi_header(campaign=0, channel=1, FFI_HEADERS_FILE=FFI_HEADERS_FILE):
-    df = pd.read_csv(FFI_HEADERS_FILE)
-    row = df[(df['campaign'] == campaign) & (df['extension'] == channel)].iloc[0]
-    return row.to_dict()
+    try:
+        df = pd.read_csv(FFI_HEADERS_FILE)
+        row = df[(df['campaign'] == campaign) & (df['extension'] == channel)].iloc[0]
+        return row.to_dict()
+    except IndexError:  # Template not found
+        return None
 
 
 if __name__ == "__main__":
