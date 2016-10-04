@@ -26,8 +26,11 @@ def k2mosaic_mosaic(tpf_filenames, cadencenumbers=None, output_prefix='', step=1
         if cadencenumbers is None:  # Obtain all cadence numbers
             cadences_to_mosaic = first_tpf[1].data['CADENCENO'][::step]
         else:
-            cadencerange = [int(r) for r in cadencenumbers.split("..")]
-            cadences_to_mosaic = list(range(cadencerange[0], cadencerange[1], step))
+            if '..' in cadencenumbers:  # A range was given
+                cadencerange = [int(r) for r in cadencenumbers.split("..")]
+            else:  # A single cadence number was given
+                cadencerange = [int(cadencenumbers), int(cadencenumbers)]
+            cadences_to_mosaic = list(range(cadencerange[0], cadencerange[1] + 1, step))
             if (cadencerange[0] not in first_tpf[1].data['CADENCENO']
                 or cadencerange[-1] not in first_tpf[1].data['CADENCENO']):
                 print('Error: invalid cadence numbers '
@@ -63,13 +66,19 @@ def k2mosaic(**kwargs):
 @click.argument('channel', type=click.IntRange(0, 84))
 @click.option('--sc/--lc', is_flag=True,
               help='Short cadence or long cadence? (default: lc)')
-def find(campaign, channel, sc):
+@click.option('--wget', is_flag=True,
+              help='Output the wget commands to obtain the files')
+def find(campaign, channel, sc, wget):
     """Prints the filenames or urls of the target pixel files
     observed during CAMPAIGN in CHANNEL.
     """
     try:
         urls = mast.k2_tpf_urls_by_campaign(campaign, channel, short_cadence=sc)
-        print('\r\n'.join(urls))
+        if wget:
+            WGET_CMD = 'wget -nH --cut-dirs=6 -c -N '
+            print('\n'.join([WGET_CMD + url for url in urls]))
+        else:
+            print('\n'.join(urls))
     except mast.NoDataFoundException as e:
         click.echo(e)
 
