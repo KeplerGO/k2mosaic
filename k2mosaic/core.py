@@ -64,7 +64,8 @@ class KeplerChannelMosaic(object):
             for kw in WCS_KEYS:
                 self.header[kw] = ffi_hdr[kw]
         else:
-            print('Warning: failed to add a WCS.')
+            print('Warning: this version of k2mosaic does not contain '
+                  'WCS information for campaign {} data.'.format(self.campaign))
 
     def add_tpf(self, tpf_filename):
         #print("Adding {}".format(tpf_filename))
