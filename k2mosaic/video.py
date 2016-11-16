@@ -4,6 +4,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as pl
 import matplotlib.image as mimg
 
+import os
+
 from astropy import visualization
 from astropy.io import fits
 import imageio
@@ -22,20 +24,19 @@ class KeplerMosaicVideoFrame(object):
     def __init__(self, fits_filename):
         self.fits_filename = fits_filename
 
-    def to_fig(self, rowrange, colrange, cmap='Greys_r', min_cut=None):
+    def to_fig(self, rowrange, colrange, extension=1, cmap='Greys_r', cut=None, dpi=100):
         """Turns a fits file into a cropped and contrast-stretched matplotlib figure."""
         with fits.open(self.fits_filename) as fts:
-            if (-np.isnan(fts[1].data)).sum() == 0:
+            if (-np.isnan(fts[extension].data)).sum() == 0:
                 raise InvalidFrameException()
-            image = fts[1].data[rowrange[0]:rowrange[1], colrange[0]:colrange[1]]
-            if min_cut is None:
-                min_cut, max_cut = np.percentile(image[-np.isnan(image)], [0.5, 99.5])
-            image_scaled = visualization.scale_image(image, scale="asinh",
-                                                     min_cut=min_cut, max_cut=max_cut) #min_percent=0.5, max_percent=99.5)
+            image = fts[extension].data[rowrange[0]:rowrange[1], colrange[0]:colrange[1]]
+            if cut is None:
+                cut = np.percentile(image[-np.isnan(image)], [10, 99.5])
+            image_scaled = visualization.scale_image(image, scale="log",
+                                                     min_cut=cut[0], max_cut=cut[1]) #min_percent=0.5, max_percent=99.5)
 
-        px_per_kepler_px = 15
+        px_per_kepler_px = 20
         dimensions = [image.shape[0] * px_per_kepler_px, image.shape[1] * px_per_kepler_px]
-        dpi = 300
         figsize = [dimensions[1]/dpi, dimensions[0]/dpi]
         dpi = 440 / float(figsize[0])
         fig = pl.figure(figsize=figsize, dpi=dpi)
@@ -54,7 +55,8 @@ class KeplerMosaicVideoFrame(object):
 
 class KeplerMosaicVideo(object):
 
-    def __init__(self, mosaic_filenames, rowrange=(0, KEPLER_CHANNEL_SHAPE[0]),
+    def __init__(self, mosaic_filenames,
+                 rowrange=(0, KEPLER_CHANNEL_SHAPE[0]),
                  colrange=(0, KEPLER_CHANNEL_SHAPE[1])):
         self.mosaic_filenames = mosaic_filenames
         self.rowrange = rowrange
@@ -63,14 +65,14 @@ class KeplerMosaicVideo(object):
     def get_frame(self, frame_number=0):
         return KeplerMosaicVideoFrame(self.mosaic_filenames[frame_number])
 
-    def export_frames(self):
+    def export_frames(self, extension=1, cut=None):
         min_cut, max_cut = None, None
         for fn in tqdm(self.mosaic_filenames, desc="Reading mosaics"):
             try:
                 frame = KeplerMosaicVideoFrame(fn)
-                fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange)
+                fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange, extension=extension, cut=cut)
                 #fig = create_figure(fn, rowrange, colrange, cmap)
-                out_fn = "videoframe-" + fn + ".png"
+                out_fn = "videoframe-" + os.path.basename(fn) + ".png"
                 fig.savefig(out_fn, cmap='Greys_r', facecolor='#333333')
                 pl.close(fig)
             except InvalidFrameException:
