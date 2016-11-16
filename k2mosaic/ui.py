@@ -48,7 +48,7 @@ def k2mosaic_mosaic(tpf_filenames, cadencenumbers=None, output_prefix='', step=1
                     output_prefix, letter, campaign, channel, cadenceno)
         click.echo("Writing {} (cadence {}/{})".format(output_fn, count+1, len(cadences_to_mosaic)))
         mosaic = core.KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
-        with click.progressbar(tpf_filenames) as bar:
+        with click.progressbar(tpf_filenames, label='Adding pixel files') as bar:
             for tpf in bar:
                 mosaic.add_tpf(tpf)
         mosaic.add_wcs()
