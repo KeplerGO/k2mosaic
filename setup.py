@@ -3,11 +3,11 @@ import os
 import sys
 from setuptools import setup
 
-if "publish" in sys.argv[-1]:
-    os.system("python setup.py sdist upload -r pypi")
-    sys.exit()
-elif "testpublish" in sys.argv[-1]:
+if "testpublish" in sys.argv[-1]:
     os.system("python setup.py sdist upload -r pypitest")
+    sys.exit()
+elif "publish" in sys.argv[-1]:
+    os.system("python setup.py sdist upload -r pypi")
     sys.exit()
 
 # Load the __version__ variable without importing the package
