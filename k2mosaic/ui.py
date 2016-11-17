@@ -72,18 +72,19 @@ def k2mosaic(**kwargs):
 
 
 @k2mosaic.command(name='tpflist', short_help='List all target pixel files for a given campaign & CCD channel.')
-@click.argument('campaign', type=int)
+@click.argument('campaign', type=str)
 @click.argument('channel', type=click.IntRange(0, 84))
 @click.option('--sc/--lc', is_flag=True,
               help='Short cadence or long cadence? (default: lc)')
 @click.option('--wget', is_flag=True,
               help='Output the wget commands to obtain the files')
 def tpflist(campaign, channel, sc, wget):
-    """Prints the filenames or urls of the target pixel files
-    observed during CAMPAIGN in CHANNEL.
+    """Prints the Target Pixel File URLS for a given CAMPAIGN/QUARTER and ccd CHANNEL.
+
+    CAMPAIGN can refer to a K2 Campaign (e.g. 'C4') or a Kepler Quarter (e.g. 'Q4').
     """
     try:
-        urls = mast.k2_tpf_urls_by_campaign(campaign, channel, short_cadence=sc)
+        urls = mast.get_tpf_urls(campaign, channel=channel, short_cadence=sc)
         if wget:
             WGET_CMD = 'wget -nH --cut-dirs=6 -c -N '
             print('\n'.join([WGET_CMD + url for url in urls]))
