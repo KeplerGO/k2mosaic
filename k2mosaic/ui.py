@@ -103,6 +103,10 @@ def tpflist(campaign, channel, sc, wget):
 def mosaic(filelist, cadence, step):
     """Mosaic a list of target pixel files."""
     tpf_filenames = [path.strip() for path in filelist.read().splitlines()]
+    if tpf_filenames[0].endswith('gz'):
+        click.secho('Warning: some of your TPFs are gzip-compressed. '
+                    'K2mosaic will perform much faster if you decompress them first.',
+                    fg='yellow')
     k2mosaic_mosaic(tpf_filenames, cadencenumbers=cadence, step=step)
 
 
@@ -155,6 +159,7 @@ def video(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
     kmv = KeplerMosaicVideo(mosaic_filenames, colrange=colrange, rowrange=rowrange)
     click.echo('Writing {}'.format(output))
     kmv.to_movie(output, extension=ext, fps=fps, dpi=dpi, cut=cut, cmap=cmap)
+    click.secho('Finished writing {}'.format(output), fg='green')
 
 
 if __name__ == '__main__':
