@@ -107,21 +107,27 @@ def mosaic(filelist, cadence, step):
 
 @k2mosaic.command()
 @click.argument('filelist', type=click.File('r'))
+@click.option('-o', '--output', type=str, default='k2mosaic-video.gif',
+              help='.gif or .mp4 output filename (default: k2mosaic-video.gif)')
+@click.option('-r', '--rows', type=str, default=None, metavar='row1..row2',
+              help='row range (default: crop to data)')
+@click.option('-c', '--cols', type=str, default=None, metavar='col1..col2',
+              help='column range (default: crop to data)')
+@click.option('--fps', type=float, default=5, metavar='FPS',
+              help='frames per second (default: 15)')
+@click.option('--dpi', type=float, default=50, metavar='DPI',
+              help='resolution of the output in dots per K2 pixel (default: 50)')
+@click.option('--cut', type=str, default=None, metavar='min_cut..max_cut',
+              help='minimum/maximum cut levels')
+@click.option('--cmap', type=str, default='gray', metavar='colormap_name',
+              help='matplotlib color map name (default: gray)')
 @click.option('-e', '--ext', type=int, default=1,
               help='FITS extension number (default: 1)')
-@click.option('-r', '--rows', type=str, default=None, metavar='row1..row2',
-              help='Row range (default: crop to data)')
-@click.option('-c', '--cols', type=str, default=None, metavar='col1..col2',
-              help='Column range (default: crop to data)')
-@click.option('--cut', type=str, default=None, metavar='min_cut..max_cut',
-              help='Minimum/maximum cut levels')
-#@click.option('-r', '--cadenceno', type=int, default=None,
-#              help='Cadence number (default: all).')
-def video(filelist, ext, rows, cols, cut, **kwargs):
+def video(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
     """Turn mosaics into a video or gif.
 
-    FILELIST should be a text file specifying the mosaic files to include,
-    one file or url per line."""
+    FILELIST should be a text file listing the mosaics to animate,
+    containing one path or url per line."""
     mosaic_filenames = [path.strip() for path in filelist.read().splitlines()]
 
     if rows is None or cols is None:
@@ -144,11 +150,10 @@ def video(filelist, ext, rows, cols, cut, **kwargs):
     if cut is not None:
         cut = [int(c) for c in cut.split("..")]
 
-    #from .video import make_video
-    #make_video(mosaic_filenames, rowrange=rowrange, colrange=colrange)
     from .video import KeplerMosaicVideo
     kmv = KeplerMosaicVideo(mosaic_filenames, colrange=colrange, rowrange=rowrange)
-    kmv.export_frames(extension=ext, cut=cut)
+    click.echo('Writing {}'.format(output))
+    kmv.to_movie(output, extension=ext, fps=fps, dpi=dpi, cut=cut, cmap=cmap)
 
 
 if __name__ == '__main__':

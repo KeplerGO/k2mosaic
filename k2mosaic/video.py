@@ -24,7 +24,7 @@ class KeplerMosaicVideoFrame(object):
     def __init__(self, fits_filename):
         self.fits_filename = fits_filename
 
-    def to_fig(self, rowrange, colrange, extension=1, cmap='Greys_r', cut=None, dpi=100):
+    def to_fig(self, rowrange, colrange, extension=1, cmap='Greys_r', cut=None, dpi=50):
         """Turns a fits file into a cropped and contrast-stretched matplotlib figure."""
         with fits.open(self.fits_filename) as fts:
             if (-np.isnan(fts[extension].data)).sum() == 0:
@@ -66,18 +66,35 @@ class KeplerMosaicVideo(object):
         return KeplerMosaicVideoFrame(self.mosaic_filenames[frame_number])
 
     def export_frames(self, extension=1, cut=None):
-        min_cut, max_cut = None, None
         for fn in tqdm(self.mosaic_filenames, desc="Reading mosaics"):
             try:
                 frame = KeplerMosaicVideoFrame(fn)
                 fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange, extension=extension, cut=cut)
-                #fig = create_figure(fn, rowrange, colrange, cmap)
                 out_fn = "videoframe-" + os.path.basename(fn) + ".png"
                 fig.savefig(out_fn, cmap='Greys_r', facecolor='#333333')
                 pl.close(fig)
             except InvalidFrameException:
                 print("InvalidFrameException for {}".format(fn))
 
+    def to_movie(self, output_fn, fps=15., dpi=50, cut=None, cmap='gray', extension=1):
+        viz = []
+        for fn in tqdm(self.mosaic_filenames, desc="Reading mosaics"):
+            try:
+                frame = KeplerMosaicVideoFrame(fn)
+                fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange,
+                                   dpi=dpi, cut=cut, cmap=cmap, extension=extension,)
+                img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                pl.close(fig)  # Avoid memory leak!
+                viz.append(img)
+            except InvalidFrameException:
+                print("InvalidFrameException for {}".format(fn))
+                # Save the output as a movie
+        if output_fn.endswith('.gif'):
+            kwargs = {'duration': 1. / fps}
+        else:
+            kwargs = {'fps': fps}
+        imageio.mimsave(output_fn, viz, **kwargs)
 
     def save_movie(self, output_fn=None, start=None, stop=None, step=None,
                    fps=15., dpi=None, min_percent=1., max_percent=95.,
@@ -137,7 +154,7 @@ class KeplerMosaicVideo(object):
              without raising a ``BadKeplerFrame`` exception. Default: `True`.
         """
         if output_fn is None:
-            output_fn = self.filename.split('/')[-1] + '.gif'
+            output_fn = self.mosaic_filenames[0].split('/')[-1] + '.gif'
         # Determine cut levels for contrast stretching from a sample of pixels
         vmin, vmax = self.cut_levels(min_percent=min_percent,
                                      max_percent=max_percent,
