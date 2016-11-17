@@ -5,6 +5,10 @@ K2mosaic: Mosaic Kepler Pixel Data
 obtained by NASA's Kepler/K2 missions
 into CCD-sized images and movies.**
 
+.. image:: http://img.shields.io/pypi/v/k2mosaic.svg
+    :target: https://pypi.python.org/pypi/k2mosaic/
+    :alt: PyPI
+
 .. image:: http://img.shields.io/travis/barentsen/k2mosaic/master.svg
     :target: http://travis-ci.org/barentsen/k2mosaic
     :alt: Travis status
@@ -13,6 +17,9 @@ into CCD-sized images and movies.**
     :target: https://github.com/barentsen/k2mosaic/blob/master/LICENSE
     :alt: MIT license
 
+.. image:: https://zenodo.org/badge/52581319.svg
+   :target: https://zenodo.org/badge/latestdoi/52581319
+   :alt: Zenodo DOI
 
 K2mosaic is a command-line tool which allows the
 postage stamp-sized pixel masks obtained by
