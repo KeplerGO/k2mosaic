@@ -61,7 +61,7 @@ def k2mosaic_mosaic(tpf_filenames, cadencenumbers=None, output_prefix='', step=1
             for tpf in bar:
                 mosaic.add_tpf(tpf)
         mosaic.add_wcs()
-        click.echo('Finished writing {}'.format(output_fn))
+        click.secho('Finished writing {}'.format(output_fn), fg='green')
         mosaic.writeto(output_fn)
 
 
@@ -157,7 +157,7 @@ def video(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
 
     from .video import KeplerMosaicVideo
     kmv = KeplerMosaicVideo(mosaic_filenames, colrange=colrange, rowrange=rowrange)
-    click.echo('Writing {}'.format(output))
+    click.echo('Started writing {}'.format(output))
     kmv.to_movie(output, extension=ext, fps=fps, dpi=dpi, cut=cut, cmap=cmap)
     click.secho('Finished writing {}'.format(output), fg='green')
 
