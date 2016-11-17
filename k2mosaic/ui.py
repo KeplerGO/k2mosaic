@@ -23,20 +23,29 @@ def k2mosaic_mosaic(tpf_filenames, cadencenumbers=None, output_prefix='', step=1
         if campaign == '':  # Hack to deal with C9 raw data
             campaign = 9
         channel = first_tpf[0].header['CHANNEL']
-        if cadencenumbers is None:  # Obtain all cadence numbers
+        if cadencenumbers is None or cadencenumbers == 'all':
+            # Mosaic all cadences
             cadences_to_mosaic = first_tpf[1].data['CADENCENO'][::step]
+        elif cadencenumbers == 'first':
+            cadences_to_mosaic = [first_tpf[1].data['CADENCENO'][0]]
+        elif cadencenumbers == 'last':
+            cadences_to_mosaic = [first_tpf[1].data['CADENCENO'][-1]]
         else:
             if '..' in cadencenumbers:  # A range was given
                 cadencerange = [int(r) for r in cadencenumbers.split("..")]
             else:  # A single cadence number was given
                 cadencerange = [int(cadencenumbers), int(cadencenumbers)]
+            # Allow for relative rather than absolute cadence numbers, i.e. from 0 through n_cadences
+            if cadencerange[1] < len(first_tpf[1].data['CADENCENO']):
+                cadencerange = [first_tpf[1].data['CADENCENO'][cadencerange[0]], first_tpf[1].data['CADENCENO'][cadencerange[1]]]
             cadences_to_mosaic = list(range(cadencerange[0], cadencerange[1] + 1, step))
             if (cadencerange[0] not in first_tpf[1].data['CADENCENO']
                 or cadencerange[-1] not in first_tpf[1].data['CADENCENO']):
-                print('Error: invalid cadence numbers '
-                      '(ensure numbers are in the range {}-{})'.format(
+                click.echo('Error: invalid cadence numbers '
+                           '(ensure numbers are in the range {}-{})'.format(
                                 first_tpf[1].data['CADENCENO'][0],
-                                first_tpf[1].data['CADENCENO'][-1]))
+                                first_tpf[1].data['CADENCENO'][-1]),
+                           err=True)
                 return
     # Start the mosaicking
     for count, cadenceno in enumerate(cadences_to_mosaic):
@@ -46,12 +55,13 @@ def k2mosaic_mosaic(tpf_filenames, cadencenumbers=None, output_prefix='', step=1
             letter = 'q'
         output_fn = "{}k2mosaic-{}{:02d}-ch{:02d}-cad{}.fits".format(
                     output_prefix, letter, campaign, channel, cadenceno)
-        click.echo("Writing {} (cadence {}/{})".format(output_fn, count+1, len(cadences_to_mosaic)))
+        click.echo("Started writing {} (cadence {}/{})".format(output_fn, count+1, len(cadences_to_mosaic)))
         mosaic = core.KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
-        with click.progressbar(tpf_filenames, label='Adding pixel files') as bar:
+        with click.progressbar(tpf_filenames, label='Adding target pixel files') as bar:
             for tpf in bar:
                 mosaic.add_tpf(tpf)
         mosaic.add_wcs()
+        click.echo('Finished writing {}'.format(output_fn))
         mosaic.writeto(output_fn)
 
 
@@ -61,14 +71,14 @@ def k2mosaic(**kwargs):
     pass
 
 
-@k2mosaic.command(short_help='Identify target pixel files to mosaic.')
+@k2mosaic.command(name='list', short_help='List all target pixel files for a given campaign & CCD channel.')
 @click.argument('campaign', type=int)
 @click.argument('channel', type=click.IntRange(0, 84))
 @click.option('--sc/--lc', is_flag=True,
               help='Short cadence or long cadence? (default: lc)')
 @click.option('--wget', is_flag=True,
               help='Output the wget commands to obtain the files')
-def find(campaign, channel, sc, wget):
+def list_cmd(campaign, channel, sc, wget):
     """Prints the filenames or urls of the target pixel files
     observed during CAMPAIGN in CHANNEL.
     """
@@ -85,14 +95,14 @@ def find(campaign, channel, sc, wget):
 
 @k2mosaic.command()
 @click.argument('filelist', type=click.File('r'))
-@click.option('-c', '--cadenceno', type=str, default=None, metavar='cadenceno1..cadenceno2',
+@click.option('-c', '--cadence', type=str, default=None, metavar='cadenceno1..cadenceno2',
               help='Cadence number range (default: all).')
 @click.option('-s', '--step', type=int, default=1, metavar='<N>',
               help='Only mosaic every Nth cadence (default: 1).')
-def mosaic(filelist, cadenceno, step):
-    """Mosaic a set of target pixel files."""
+def mosaic(filelist, cadence, step):
+    """Mosaic a list of target pixel files."""
     tpf_filenames = [path.strip() for path in filelist.read().splitlines()]
-    k2mosaic_mosaic(tpf_filenames, cadencenumbers=cadenceno, step=step)
+    k2mosaic_mosaic(tpf_filenames, cadencenumbers=cadence, step=step)
 
 
 @k2mosaic.command()
