@@ -1,4 +1,5 @@
-"""Exposes k2mosaic to the command line."""
+"""Defines the k2mosaic command line tools.
+"""
 import click
 
 from astropy.io import fits
@@ -10,52 +11,56 @@ from . import core, mast, __version__
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
-def k2mosaic_mosaic(tpf_filenames, cadencenumbers=None, output_prefix='', step=10):
-    """Mosaic a set of TPF files for a set of cadences."""
-    # First obtain the campaign, channel, and desired cadence numbers
+def _parse_mosaic_request(tpf_filenames, cadence='all', step=10):
     with fits.open(tpf_filenames[0]) as first_tpf:
         try:
             campaign = first_tpf[0].header['CAMPAIGN']
-            is_k2 = True
+            mission = 'k2'
         except KeyError:
             campaign = first_tpf[0].header['QUARTER']
-            is_k2 = False
+            mission = 'kepler'
         if campaign == '':  # Hack to deal with C9 raw data
             campaign = 9
         channel = first_tpf[0].header['CHANNEL']
-        if cadencenumbers is None or cadencenumbers == 'all':
-            # Mosaic all cadences
+
+        if cadence is None or cadence == 'all':  # Mosaic all cadences
             cadences_to_mosaic = first_tpf[1].data['CADENCENO'][::step]
-        elif cadencenumbers == 'first':
+        elif cadence == 'first':
             cadences_to_mosaic = [first_tpf[1].data['CADENCENO'][0]]
-        elif cadencenumbers == 'last':
+        elif cadence == 'last':
             cadences_to_mosaic = [first_tpf[1].data['CADENCENO'][-1]]
         else:
-            if '..' in cadencenumbers:  # A range was given
-                cadencerange = [int(r) for r in cadencenumbers.split("..")]
+            if '..' in cadence:  # A range was given
+                cadencerange = [int(r) for r in cadence.split("..")]
             else:  # A single cadence number was given
-                cadencerange = [int(cadencenumbers), int(cadencenumbers)]
-            # Allow for relative rather than absolute cadence numbers, i.e. from 0 through n_cadences
+                cadencerange = [int(cadence), int(cadence)]
+            # Allow for relative rather than absolute cadence numbers,
+            # i.e. from 0 through n_cadences
             if cadencerange[1] < len(first_tpf[1].data['CADENCENO']):
-                cadencerange = [first_tpf[1].data['CADENCENO'][cadencerange[0]], first_tpf[1].data['CADENCENO'][cadencerange[1]]]
+                cadencerange = [first_tpf[1].data['CADENCENO'][cadencerange[0]],
+                                first_tpf[1].data['CADENCENO'][cadencerange[1]]]
             cadences_to_mosaic = list(range(cadencerange[0], cadencerange[1] + 1, step))
-            if (cadencerange[0] not in first_tpf[1].data['CADENCENO']
-                or cadencerange[-1] not in first_tpf[1].data['CADENCENO']):
+            if (cadencerange[0] not in first_tpf[1].data['CADENCENO'] or
+                    cadencerange[-1] not in first_tpf[1].data['CADENCENO']):
                 click.echo('Error: invalid cadence numbers '
                            '(ensure numbers are in the range {}-{})'.format(
                                 first_tpf[1].data['CADENCENO'][0],
                                 first_tpf[1].data['CADENCENO'][-1]),
                            err=True)
                 return
-    # Start the mosaicking
-    for count, cadenceno in enumerate(cadences_to_mosaic):
-        if is_k2:
+    return mission, campaign, channel, cadences_to_mosaic
+
+
+def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist, output_prefix=''):
+    """Mosaic a set of TPF files for a set of cadences."""
+    for count, cadenceno in enumerate(cadencelist):
+        if mission == 'k2':
             letter = 'c'
         else:
             letter = 'q'
         output_fn = "{}k2mosaic-{}{:02d}-ch{:02d}-cad{}.fits".format(
                     output_prefix, letter, campaign, channel, cadenceno)
-        click.echo("Started writing {} (cadence {}/{})".format(output_fn, count+1, len(cadences_to_mosaic)))
+        click.echo("Started writing {} (cadence {}/{})".format(output_fn, count+1, len(cadencelist)))
         mosaic = core.KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
         with click.progressbar(tpf_filenames, label='Reading TPFs') as bar:
             for tpf in bar:
@@ -107,7 +112,11 @@ def mosaic(filelist, cadence, step):
         click.secho('Warning: some of your TPFs are gzip-compressed. '
                     'K2mosaic will perform much faster if you decompress them first.',
                     fg='yellow')
-    k2mosaic_mosaic(tpf_filenames, cadencenumbers=cadence, step=step)
+    # Parse the requested cadences
+    mission, campaign, channel, cadencelist = _parse_mosaic_request(tpf_filenames,
+                                                                    cadence=cadence,
+                                                                    step=step)
+    k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist)
 
 
 @k2mosaic.command()
