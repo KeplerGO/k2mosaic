@@ -18,11 +18,14 @@ entry_points = {'console_scripts':
 
 setup(name='k2mosaic',
       version=__version__,
-      description='Creates a mosaic of all K2 target pixel files '
-                  'in a given channel during a single cadence.',
+      description="Mosaic Target Pixel Files (TPFs) "
+                  "obtained by NASA's Kepler/K2 missions "
+                  "into CCD-sized images and movies.",
+      long_description=open('README.rst').read(),
       author='Geert Barentsen',
       author_email='hello@geert.io',
-      url='https://github.com/barentsen/k2mosaic',
+      license='MIT',
+      url='https://k2mosaic.geert.io',
       packages=['k2mosaic'],
       package_data={'k2mosaic': ['data/*.csv']},
       install_requires=['astropy>=0.4',
@@ -37,7 +40,8 @@ setup(name='k2mosaic',
           "Development Status :: 5 - Production/Stable",
           "License :: OSI Approved :: MIT License",
           "Operating System :: OS Independent",
-          "Programming Language :: Python",
+          "Programming Language :: Python :: 2.7",
+          "Programming Language :: Python :: 3",
           "Intended Audience :: Science/Research",
           "Topic :: Scientific/Engineering :: Astronomy",
           ],
