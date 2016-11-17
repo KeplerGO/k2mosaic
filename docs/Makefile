@@ -228,3 +228,8 @@ dummy:
 	$(SPHINXBUILD) -b dummy $(ALLSPHINXOPTS) $(BUILDDIR)/dummy
 	@echo
 	@echo "Build finished. Dummy builder generates no files."
+
+.PHONY: upload
+upload:
+	aws s3 sync _build/html/ s3://k2mosaic.geert.io
+
