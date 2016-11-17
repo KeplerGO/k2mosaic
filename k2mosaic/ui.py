@@ -57,7 +57,7 @@ def k2mosaic_mosaic(tpf_filenames, cadencenumbers=None, output_prefix='', step=1
                     output_prefix, letter, campaign, channel, cadenceno)
         click.echo("Started writing {} (cadence {}/{})".format(output_fn, count+1, len(cadences_to_mosaic)))
         mosaic = core.KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
-        with click.progressbar(tpf_filenames, label='Adding target pixel files') as bar:
+        with click.progressbar(tpf_filenames, label='Reading TPFs') as bar:
             for tpf in bar:
                 mosaic.add_tpf(tpf)
         mosaic.add_wcs()
@@ -71,14 +71,14 @@ def k2mosaic(**kwargs):
     pass
 
 
-@k2mosaic.command(name='list', short_help='List all target pixel files for a given campaign & CCD channel.')
+@k2mosaic.command(name='tpflist', short_help='List all target pixel files for a given campaign & CCD channel.')
 @click.argument('campaign', type=int)
 @click.argument('channel', type=click.IntRange(0, 84))
 @click.option('--sc/--lc', is_flag=True,
               help='Short cadence or long cadence? (default: lc)')
 @click.option('--wget', is_flag=True,
               help='Output the wget commands to obtain the files')
-def list_cmd(campaign, channel, sc, wget):
+def tpflist(campaign, channel, sc, wget):
     """Prints the filenames or urls of the target pixel files
     observed during CAMPAIGN in CHANNEL.
     """
