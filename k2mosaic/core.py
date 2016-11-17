@@ -7,19 +7,17 @@ mos.gather_pixels()
 mos.add_wcs()
 mos.writeto("mymosaic.fits")
 """
-import argparse
 from collections import OrderedDict
 import glob
 import os
 import re
-import requests
 
 from astropy.io import fits
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+import click
 
-from . import PACKAGEDIR, KEPLER_CHANNEL_SHAPE, mast
+from . import PACKAGEDIR, KEPLER_CHANNEL_SHAPE
 
 FFI_HEADERS_FILE = os.path.join(PACKAGEDIR, 'data', 'k2-ffi-headers.csv')
 WCS_KEYS = ['TELESCOP', 'INSTRUME', 'CHANNEL', 'MODULE', 'OUTPUT', 'RADESYS',
@@ -48,9 +46,10 @@ class KeplerChannelMosaic(object):
     def gather_pixels(self):
         """Figures out the files needed and adds the pixels."""
         print("Querying MAST to obtain a list of target pixel files...")
-        urls = k2_tpf_urls_by_campaign(self.campaign, self.channel)
+        from .mast import get_tpf_urls
+        urls = get_tpf_urls(self.campaign, channel=self.channel)
         print("Found {} target pixel files.".format(len(urls)))
-        for url in tqdm(urls, desc="Reading target pixel files"):
+        for url in click.progressbar(urls, label="Reading target pixel files", show_pos=True):
             if self.data_store is not None:
                 path = url.replace("http://archive.stsci.edu/missions/k2/target_pixel_files", self.data_store)
             else:
@@ -106,7 +105,7 @@ def export_ffi_headers(output_fn=FFI_HEADERS_FILE, ffi_store=None):
         ffi_store = os.path.join(os.getenv("K2DATA"), 'ffi')
     ffi_headers = []
     ffi_filenames = glob.glob(os.path.join(ffi_store, '*cal.fits'))
-    for filename in tqdm(ffi_filenames, desc="Reading FFI files"):
+    for filename in click.progressbar(ffi_filenames, label="Reading FFI files", show_pos=True):
         basename = os.path.basename(filename)
         # Extract the campaign number from the FFI filename
         campaign = int(re.match(".*c([0-9]+)_.*", basename).group(1))

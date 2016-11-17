@@ -5,12 +5,12 @@ import matplotlib.pyplot as pl
 import matplotlib.image as mimg
 
 import os
+import click
 
 from astropy import visualization
 from astropy.io import fits
 import imageio
 import numpy as np
-from tqdm import tqdm
 
 from . import KEPLER_CHANNEL_SHAPE
 
@@ -66,7 +66,7 @@ class KeplerMosaicVideo(object):
         return KeplerMosaicVideoFrame(self.mosaic_filenames[frame_number])
 
     def export_frames(self, extension=1, cut=None):
-        for fn in tqdm(self.mosaic_filenames, desc="Reading mosaics"):
+        for fn in click.progressbar(self.mosaic_filenames, label="Reading mosaics", show_pos=True):
             try:
                 frame = KeplerMosaicVideoFrame(fn)
                 fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange, extension=extension, cut=cut)
@@ -78,7 +78,7 @@ class KeplerMosaicVideo(object):
 
     def to_movie(self, output_fn, fps=15., dpi=50, cut=None, cmap='gray', extension=1):
         viz = []
-        for fn in tqdm(self.mosaic_filenames, desc="Reading mosaics"):
+        for fn in click.progressbar(self.mosaic_filenames, label="Reading mosaics", show_pos=True):
             try:
                 frame = KeplerMosaicVideoFrame(fn)
                 fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange,
@@ -168,7 +168,7 @@ class KeplerMosaicVideo(object):
         # Create the movie frames
         print('Creating {0}'.format(output_fn))
         viz = []
-        for frameno in tqdm(np.arange(frameno_start, frameno_stop + 1, step, dtype=int)):
+        for frameno in click.progressbar(np.arange(frameno_start, frameno_stop + 1, step, dtype=int)):
             try:
                 fig = self.create_figure(frameno=frameno, dpi=dpi,
                                          vmin=vmin, vmax=vmax, cmap=cmap,

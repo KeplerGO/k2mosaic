@@ -62,7 +62,7 @@ def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist, outp
                     output_prefix, letter, campaign, channel, cadenceno)
         click.echo("Started writing {} (cadence {}/{})".format(output_fn, count+1, len(cadencelist)))
         mosaic = core.KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
-        with click.progressbar(tpf_filenames, label='Reading TPFs') as bar:
+        with click.progressbar(tpf_filenames, label='Reading TPFs', show_pos=True) as bar:
             for tpf in bar:
                 mosaic.add_tpf(tpf)
         mosaic.add_wcs()
