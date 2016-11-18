@@ -78,18 +78,19 @@ class KeplerMosaicVideo(object):
 
     def to_movie(self, output_fn, fps=15., dpi=50, cut=None, cmap='gray', extension=1):
         viz = []
-        for fn in click.progressbar(self.mosaic_filenames, label="Reading mosaics", show_pos=True):
-            try:
-                frame = KeplerMosaicVideoFrame(fn)
-                fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange,
-                                   dpi=dpi, cut=cut, cmap=cmap, extension=extension,)
-                img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-                img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                pl.close(fig)  # Avoid memory leak!
-                viz.append(img)
-            except InvalidFrameException:
-                print("InvalidFrameException for {}".format(fn))
-                # Save the output as a movie
+        with click.progressbar(self.mosaic_filenames, label="Reading mosaics", show_pos=True) as bar:
+            for fn in bar:
+                try:
+                    frame = KeplerMosaicVideoFrame(fn)
+                    fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange,
+                                       dpi=dpi, cut=cut, cmap=cmap, extension=extension,)
+                    img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+                    img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    pl.close(fig)  # Avoid memory leak!
+                    viz.append(img)
+                except InvalidFrameException:
+                    print("InvalidFrameException for {}".format(fn))
+                    # Save the output as a movie
         if output_fn.endswith('.gif'):
             kwargs = {'duration': 1. / fps}
         else:
