@@ -1,17 +1,18 @@
 """Defines the k2mosaic command line tools.
 """
-import click
-
 from astropy.io import fits
+import click
+from functools import partial
 import numpy as np
 
-from . import KEPLER_CHANNEL_SHAPE
-from . import core, mast, __version__
+from . import mast, __version__, KEPLER_CHANNEL_SHAPE
+from .core import KeplerChannelMosaic
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
 def _parse_mosaic_request(tpf_filenames, cadence='all', step=10):
+    """Parse the campaign/channel/cadence arguments passed to `k2mosaic mosaic`."""
     with fits.open(tpf_filenames[0]) as first_tpf:
         try:
             campaign = first_tpf[0].header['CAMPAIGN']
@@ -51,23 +52,36 @@ def _parse_mosaic_request(tpf_filenames, cadence='all', step=10):
     return mission, campaign, channel, cadences_to_mosaic
 
 
-def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist, output_prefix=''):
+def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist,
+                    output_prefix='', verbose=True, processes=None):
     """Mosaic a set of TPF files for a set of cadences."""
-    for count, cadenceno in enumerate(cadencelist):
-        if mission == 'k2':
-            letter = 'c'
-        else:
-            letter = 'q'
-        output_fn = "{}k2mosaic-{}{:02d}-ch{:02d}-cad{}.fits".format(
-                    output_prefix, letter, campaign, channel, cadenceno)
-        click.echo("Started writing {} (cadence {}/{})".format(output_fn, count+1, len(cadencelist)))
-        mosaic = core.KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
+    task = partial(k2mosaic_mosaic_one, tpf_filenames=tpf_filenames,
+                   campaign=campaign, channel=channel,
+                   output_prefix=output_prefix, verbose=verbose)
+    if processes is None or processes > 1:  # Use parallel processing
+        from multiprocessing import Pool
+        pool = Pool(processes=processes)
+        with click.progressbar(pool.imap(task, cadencelist), label='Mosaicking', show_pos=True) as iterable:
+            [job for job in iterable]
+    else:  # Single process
+        with click.progressbar(cadencelist, label='Mosaicking', show_pos=True) as iterable:
+            [task(job) for job in iterable]
+
+
+def k2mosaic_mosaic_one(cadenceno, tpf_filenames, campaign, channel, output_prefix='k2mosaic-c', progressbar=False, verbose=False):
+    output_fn = "{}{:02d}-ch{:02d}-cad{}.fits".format(output_prefix, campaign, channel, cadenceno)
+    if verbose:
+        click.echo("Started writing {}".format(output_fn))
+    mosaic = KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
+    if progressbar:
         with click.progressbar(tpf_filenames, label='Reading TPFs', show_pos=True) as bar:
-            for tpf in bar:
-                mosaic.add_tpf(tpf)
-        mosaic.add_wcs()
+            [mosaic.add_tpf(tpf) for tpf in bar]
+    else:
+        [mosaic.add_tpf(tpf) for tpf in tpf_filenames]
+    mosaic.add_wcs()
+    mosaic.writeto(output_fn)
+    if verbose:
         click.secho('Finished writing {}'.format(output_fn), fg='green')
-        mosaic.writeto(output_fn)
 
 
 @click.group(context_settings=CONTEXT_SETTINGS)
@@ -105,7 +119,9 @@ def tpflist(campaign, channel, sc, wget):
               help='Cadence number range (default: all).')
 @click.option('-s', '--step', type=int, default=1, metavar='<N>',
               help='Only mosaic every Nth cadence (default: 1).')
-def mosaic(filelist, cadence, step):
+@click.option('-p', '--processes', type=click.IntRange(min=1), default=None, metavar='<CPUs>',
+              help='Number of processes to use (default: #CPUs)')
+def mosaic(filelist, cadence, step, processes):
     """Mosaic a list of target pixel files."""
     tpf_filenames = [path.strip() for path in filelist.read().splitlines()]
     if tpf_filenames[0].endswith('gz'):
@@ -116,7 +132,12 @@ def mosaic(filelist, cadence, step):
     mission, campaign, channel, cadencelist = _parse_mosaic_request(tpf_filenames,
                                                                     cadence=cadence,
                                                                     step=step)
-    k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist)
+    if mission == 'k2':
+        output_prefix = 'k2mosaic-c'
+    else:
+        output_prefix = 'k2mosaic-q'
+    k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist,
+                    output_prefix=output_prefix, processes=processes)
 
 
 @k2mosaic.command()
