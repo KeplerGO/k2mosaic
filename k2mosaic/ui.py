@@ -1,4 +1,4 @@
-"""Defines the k2mosaic command line tools.
+"""Implements the k2mosaic command-line interface.
 """
 from astropy.io import fits
 import click
@@ -6,7 +6,6 @@ from functools import partial
 import numpy as np
 
 from . import mast, __version__, KEPLER_CHANNEL_SHAPE
-from .core import KeplerChannelMosaic
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -68,7 +67,9 @@ def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist,
             [task(job) for job in iterable]
 
 
-def k2mosaic_mosaic_one(cadenceno, tpf_filenames, campaign, channel, output_prefix='k2mosaic-c', progressbar=False, verbose=False):
+def k2mosaic_mosaic_one(cadenceno, tpf_filenames, campaign, channel,
+                        output_prefix='k2mosaic-c', progressbar=False, verbose=False):
+    from .mosaic import KeplerChannelMosaic
     output_fn = "{}{:02d}-ch{:02d}-cad{}.fits".format(output_prefix, campaign, channel, cadenceno)
     if verbose:
         click.echo("Started writing {}".format(output_fn))
