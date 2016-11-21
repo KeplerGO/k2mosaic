@@ -144,8 +144,8 @@ def mosaic(filelist, cadence, step, processes):
 
 @k2mosaic.command()
 @click.argument('filelist', type=click.File('r'))
-@click.option('-o', '--output', type=str, default='k2mosaic-video.gif',
-              help='.gif or .mp4 output filename (default: k2mosaic-video.gif)')
+@click.option('-o', '--output', type=str, default='k2mosaic-movie.gif',
+              help='.gif or .mp4 output filename (default: k2mosaic-movie.gif)')
 @click.option('-r', '--rows', type=str, default=None, metavar='row1..row2',
               help='row range (default: crop to data)')
 @click.option('-c', '--cols', type=str, default=None, metavar='col1..col2',
@@ -160,8 +160,8 @@ def mosaic(filelist, cadence, step, processes):
               help='matplotlib color map name (default: gray)')
 @click.option('-e', '--ext', type=int, default=1,
               help='FITS extension number (default: 1)')
-def video(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
-    """Turn mosaics into a video or gif.
+def movie(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
+    """Turn mosaics into a movie or animated gif.
 
     FILELIST should be a text file listing the mosaics to animate,
     containing one path or url per line."""
@@ -187,10 +187,10 @@ def video(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
     if cut is not None:
         cut = [int(c) for c in cut.split("..")]
 
-    from .video import KeplerMosaicVideo
-    kmv = KeplerMosaicVideo(mosaic_filenames, colrange=colrange, rowrange=rowrange)
+    from .movie import KeplerMosaicMovie
+    kmm = KeplerMosaicMovie(mosaic_filenames, colrange=colrange, rowrange=rowrange)
     click.echo('Started writing {}'.format(output))
-    kmv.to_movie(output, extension=ext, fps=fps, dpi=dpi, cut=cut, cmap=cmap)
+    kmm.to_movie(output, extension=ext, fps=fps, dpi=dpi, cut=cut, cmap=cmap)
     click.secho('Finished writing {}'.format(output), fg='green')
 
 

@@ -19,7 +19,7 @@ class InvalidFrameException(Exception):
     pass
 
 
-class KeplerMosaicVideoFrame(object):
+class KeplerMosaicMovieFrame(object):
 
     def __init__(self, fits_filename):
         self.fits_filename = fits_filename
@@ -53,7 +53,7 @@ class KeplerMosaicVideoFrame(object):
         return fig
 
 
-class KeplerMosaicVideo(object):
+class KeplerMosaicMovie(object):
 
     def __init__(self, mosaic_filenames,
                  rowrange=(0, KEPLER_CHANNEL_SHAPE[0]),
@@ -63,14 +63,14 @@ class KeplerMosaicVideo(object):
         self.colrange = colrange
 
     def get_frame(self, frame_number=0):
-        return KeplerMosaicVideoFrame(self.mosaic_filenames[frame_number])
+        return KeplerMosaicMovieFrame(self.mosaic_filenames[frame_number])
 
     def export_frames(self, extension=1, cut=None):
         for fn in click.progressbar(self.mosaic_filenames, label="Reading mosaics", show_pos=True):
             try:
-                frame = KeplerMosaicVideoFrame(fn)
+                frame = KeplerMosaicMovieFrame(fn)
                 fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange, extension=extension, cut=cut)
-                out_fn = "videoframe-" + os.path.basename(fn) + ".png"
+                out_fn = "movie-frame-" + os.path.basename(fn) + ".png"
                 fig.savefig(out_fn, cmap='Greys_r', facecolor='#333333')
                 pl.close(fig)
             except InvalidFrameException:
@@ -81,7 +81,7 @@ class KeplerMosaicVideo(object):
         with click.progressbar(self.mosaic_filenames, label="Reading mosaics", show_pos=True) as bar:
             for fn in bar:
                 try:
-                    frame = KeplerMosaicVideoFrame(fn)
+                    frame = KeplerMosaicMovieFrame(fn)
                     fig = frame.to_fig(rowrange=self.rowrange, colrange=self.colrange,
                                        dpi=dpi, cut=cut, cmap=cmap, extension=extension,)
                     img = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
