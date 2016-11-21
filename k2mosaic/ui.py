@@ -115,11 +115,14 @@ def tpflist(campaign, channel, sc, wget):
 
 @k2mosaic.command()
 @click.argument('filelist', type=click.File('r'))
-@click.option('-c', '--cadence', type=str, default=None, metavar='cadenceno1..cadenceno2',
+@click.option('-c', '--cadence', type=str,
+              default=None, metavar='cadenceno1..cadenceno2',
               help='Cadence number range (default: all).')
-@click.option('-s', '--step', type=int, default=1, metavar='<N>',
+@click.option('-s', '--step', type=click.IntRange(min=1),
+              default=1, metavar='<N>',
               help='Only mosaic every Nth cadence (default: 1).')
-@click.option('-p', '--processes', type=click.IntRange(min=1), default=None, metavar='<CPUs>',
+@click.option('-p', '--processes', type=click.IntRange(min=1),
+              default=None, metavar='<CPUs>',
               help='Number of processes to use (default: #CPUs)')
 def mosaic(filelist, cadence, step, processes):
     """Mosaic a list of target pixel files."""
@@ -129,9 +132,8 @@ def mosaic(filelist, cadence, step, processes):
                     'K2mosaic will perform much faster if you decompress them first.',
                     fg='yellow')
     # Parse the requested cadences
-    mission, campaign, channel, cadencelist = _parse_mosaic_request(tpf_filenames,
-                                                                    cadence=cadence,
-                                                                    step=step)
+    mission, campaign, channel, cadencelist = \
+        _parse_mosaic_request(tpf_filenames, cadence=cadence, step=step)
     if mission == 'k2':
         output_prefix = 'k2mosaic-c'
     else:
