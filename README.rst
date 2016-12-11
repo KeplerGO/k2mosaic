@@ -51,4 +51,7 @@ Attribution
 
 Created by Geert Barentsen at the NASA Kepler/K2 Guest Observer Office.
 
-If this tool aided your research, please cite it. Get in touch for instructions.
+If this tool aided your research, please cite it.
+Please get in touch before submitting your paper
+so I can request an entry in the Astrophysics Source Code Library (ASCL).
+
