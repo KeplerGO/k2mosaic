@@ -49,12 +49,14 @@ class KeplerChannelMosaic(object):
         from .mast import get_tpf_urls
         urls = get_tpf_urls(self.campaign, channel=self.channel)
         print("Found {} target pixel files.".format(len(urls)))
-        for url in click.progressbar(urls, label="Reading target pixel files", show_pos=True):
-            if self.data_store is not None:
-                path = url.replace("http://archive.stsci.edu/missions/k2/target_pixel_files", self.data_store)
-            else:
-                path = url
-            self.add_tpf(path)
+        with click.progressbar(urls, label="Reading target pixel files",
+                               show_pos=True) as bar:
+            for url in bar:
+                if self.data_store is not None:
+                    path = url.replace("http://archive.stsci.edu/missions/k2/target_pixel_files", self.data_store)
+                else:
+                    path = url
+                self.add_tpf(path)
 
     def add_wcs(self):
         """Injects the WCS keywords from an FFI of the same campaign."""
@@ -105,22 +107,24 @@ def export_ffi_headers(output_fn=FFI_HEADERS_FILE, ffi_store=None):
         ffi_store = os.path.join(os.getenv("K2DATA"), 'ffi')
     ffi_headers = []
     ffi_filenames = glob.glob(os.path.join(ffi_store, '*cal.fits'))
-    for filename in click.progressbar(ffi_filenames, label="Reading FFI files", show_pos=True):
-        basename = os.path.basename(filename)
-        # Extract the campaign number from the FFI filename
-        campaign = int(re.match(".*c([0-9]+)_.*", basename).group(1))
-        fts = fits.open(filename)
-        for ext in range(1, 85):
-            try:
-                keywords = OrderedDict()
-                keywords['campaign'] = campaign
-                keywords['filename'] = basename
-                keywords['extension'] = ext
-                for kw in WCS_KEYS:
-                    keywords[kw] = fts[ext].header[kw]
-                ffi_headers.append(keywords)
-            except KeyError:
-                pass
+    with click.progressbar(ffi_filenames, label="Reading FFI files",
+                           show_pos=True) as bar:
+        for filename in bar:
+            basename = os.path.basename(filename)
+            # Extract the campaign number from the FFI filename
+            campaign = int(re.match(".*c([0-9]+)_.*", basename).group(1))
+            fts = fits.open(filename)
+            for ext in range(1, 85):
+                try:
+                    keywords = OrderedDict()
+                    keywords['campaign'] = campaign
+                    keywords['filename'] = basename
+                    keywords['extension'] = ext
+                    for kw in WCS_KEYS:
+                        keywords[kw] = fts[ext].header[kw]
+                    ffi_headers.append(keywords)
+                except KeyError:
+                    pass
     # Convert to a pandas dataframe and then export to csv
     df = pd.DataFrame(ffi_headers)
     df = df.sort_values(["campaign", "filename"])
