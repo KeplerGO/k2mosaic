@@ -2,7 +2,6 @@
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as pl
-import matplotlib.image as mimg
 
 import os
 import click
