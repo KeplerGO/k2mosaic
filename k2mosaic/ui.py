@@ -125,7 +125,9 @@ def tpflist(campaign, channel, sc, wget):
 @click.option('-p', '--processes', type=click.IntRange(min=1),
               default=None, metavar='<CPUs>',
               help='Number of processes to use (default: #CPUs)')
-def mosaic(filelist, cadence, step, processes):
+@click.option('-o', '--output', type=str, default=None,
+              help='output filename prefix (default: k2mosaic-[cq])')
+def mosaic(filelist, cadence, step, processes, output):
     """Mosaic a list of target pixel files."""
     tpf_filenames = [path.strip() for path in filelist.read().splitlines()]
     if tpf_filenames[0].endswith('gz'):
@@ -135,12 +137,13 @@ def mosaic(filelist, cadence, step, processes):
     # Parse the requested cadences
     mission, campaign, channel, cadencelist = \
         _parse_mosaic_request(tpf_filenames, cadence=cadence, step=step)
-    if mission == 'k2':
-        output_prefix = 'k2mosaic-c'
-    else:
-        output_prefix = 'k2mosaic-q'
+    if output is None:
+        if mission == 'k2':
+            output = 'k2mosaic-c'
+        else:
+            output = 'k2mosaic-q'
     k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist,
-                    output_prefix=output_prefix, processes=processes)
+                    output_prefix=output, processes=processes)
 
 
 @k2mosaic.command()
