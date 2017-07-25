@@ -29,6 +29,7 @@ class KeplerMosaicMovieFrame(object):
         if (-np.isnan(fts[extension].read())).sum() == 0:
             raise InvalidFrameException()
         image = fts[extension].read()[rowrange[0]:rowrange[1], colrange[0]:colrange[1]]
+        fts.close()
         if cut is None:
             cut = np.percentile(image[-np.isnan(image)], [10, 99.5])
         image_scaled = visualization.scale_image(image, scale="log",
