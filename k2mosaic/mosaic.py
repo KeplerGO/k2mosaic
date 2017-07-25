@@ -13,6 +13,7 @@ import os
 import re
 
 from astropy.io import fits
+import fitsio
 import numpy as np
 import pandas as pd
 import click
@@ -70,19 +71,24 @@ class KeplerChannelMosaic(object):
 
     def add_tpf(self, tpf_filename):
         #print("Adding {}".format(tpf_filename))
-        tpf = fits.open(tpf_filename)
+        tpf = fitsio.FITS(tpf_filename)
         self.add_pixels(tpf)
-        del tpf
+        tpf.close()
 
     def add_pixels(self, tpf, fluxcolumn='FLUX'):
-        aperture_shape = tpf[1].data[fluxcolumn][0].shape
+        aperture_shape = tpf[1].read()[fluxcolumn][0].shape
         # Get the pixel coordinates of the corner of the aperture
-        col, row = tpf[1].header["1CRV5P"], tpf[1].header["2CRV5P"]
+        hdr_list = tpf[1].read_header_list()
+        hdr = {elem['name']:elem['value'] for elem in hdr_list}
+        col, row = int(hdr['1CRV5P']), int(hdr['2CRV5P'])
         height, width = aperture_shape[0], aperture_shape[1]
         # Fill the data
-        mask = tpf[2].data > 0
-        idx = self.cadenceno - tpf[1].data["CADENCENO"][0]
-        self.data[row:row+height, col:col+width][mask] = tpf[1].data[fluxcolumn][idx][mask]
+        mask = tpf[2].read() > 0
+        idx = self.cadenceno - tpf[1].read()["CADENCENO"][0]
+        try:
+            self.data[row:row+height, col:col+width][mask] = tpf[1].read()[fluxcolumn][idx][mask]
+        except:
+            print("Unknown failure: N_positive pixels: {}".format(np.sum(mask)))
 
     def to_fits(self):
         primary_hdu = fits.PrimaryHDU()
