@@ -26,12 +26,12 @@ class KeplerMosaicMovieFrame(object):
     def to_fig(self, rowrange, colrange, extension=1, cmap='Greys_r', cut=None, dpi=50):
         """Turns a fits file into a cropped and contrast-stretched matplotlib figure."""
         fts = fitsio.FITS(self.fits_filename)
-        if (-np.isnan(fts[extension].read())).sum() == 0:
+        if (np.isfinite(fts[extension].read())).sum() == 0:
             raise InvalidFrameException()
         image = fts[extension].read()[rowrange[0]:rowrange[1], colrange[0]:colrange[1]]
         fts.close()
         if cut is None:
-            cut = np.percentile(image[-np.isnan(image)], [10, 99.5])
+            cut = np.percentile(image[np.isfinite(image)], [10, 99.5])
         image_scaled = visualization.scale_image(image, scale="log",
                                                  min_cut=cut[0], max_cut=cut[1]) #min_percent=0.5, max_percent=99.5)
 

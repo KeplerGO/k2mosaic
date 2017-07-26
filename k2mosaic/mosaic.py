@@ -85,10 +85,7 @@ class KeplerChannelMosaic(object):
         # Fill the data
         mask = tpf[2].read() > 0
         idx = self.cadenceno - tpf[1].read()["CADENCENO"][0]
-        try:
-            self.data[row:row+height, col:col+width][mask] = tpf[1].read()[fluxcolumn][idx][mask]
-        except:
-            print("Unknown failure: N_positive pixels: {}".format(np.sum(mask)))
+        self.data[row:row+height, col:col+width][mask] = tpf[1].read()[fluxcolumn][idx][mask]
 
     def to_fits(self):
         primary_hdu = fits.PrimaryHDU()
