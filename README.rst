@@ -9,12 +9,12 @@ into CCD-sized images and movies.**
     :target: https://pypi.python.org/pypi/k2mosaic/
     :alt: PyPI
 
-.. image:: http://img.shields.io/travis/barentsen/k2mosaic/master.svg
-    :target: http://travis-ci.org/barentsen/k2mosaic
+.. image:: http://img.shields.io/travis/keplergo/k2mosaic/master.svg
+    :target: http://travis-ci.org/keplergo/k2mosaic
     :alt: Travis status
 
 .. image:: http://img.shields.io/badge/license-MIT-blue.svg
-    :target: https://github.com/barentsen/k2mosaic/blob/master/LICENSE
+    :target: https://github.com/keplergo/k2mosaic/blob/master/LICENSE
     :alt: MIT license
 
 .. image:: https://zenodo.org/badge/52581319.svg
