@@ -9,3 +9,5 @@ sandbox
 *.fits
 tmp
 
+# vim users
+.*.swp

@@ -172,7 +172,7 @@ def movie(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
     mosaic_filenames = [path.strip() for path in filelist.read().splitlines()]
 
     if rows is None or cols is None:
-        idx_not_nan = np.argwhere(-np.isnan(fits.open(mosaic_filenames[0])[1].data))
+        idx_not_nan = np.argwhere(np.isfinite(fits.open(mosaic_filenames[0])[1].data))
 
     if rows is None:
         rowrange = (np.min(idx_not_nan[:, 0]), np.max(idx_not_nan[:, 0]))
