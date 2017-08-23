@@ -93,8 +93,8 @@ class KeplerChannelMosaic(object):
         hdulist = fits.HDUList([primary_hdu, image_hdu])
         return hdulist
 
-    def writeto(self, output_fn, clobber=True):
-        self.to_fits().writeto(output_fn, clobber=clobber)
+    def writeto(self, output_fn, overwrite=True):
+        self.to_fits().writeto(output_fn, overwrite=overwrite)
 
 
 ###
