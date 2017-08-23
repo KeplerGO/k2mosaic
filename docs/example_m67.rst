@@ -43,7 +43,7 @@ This will be slow.
 Let's start by creating a FITS image for a specific cadence first,
 by providing the optional ``--cadence`` argument::
 
-    $ k2mosaic mosaic --cadencec 110000 list-of-tpf-urls.txt
+    $ k2mosaic mosaic --cadence 110000 list-of-tpf-urls.txt
 
 The above command will download the required TPF files (if needed)
 and create a new FITS images called ``k2mosaic-c05-ch13-cad110000.fits``,
