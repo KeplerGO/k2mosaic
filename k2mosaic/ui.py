@@ -72,7 +72,7 @@ def k2mosaic_mosaic_one(cadenceno, tpf_filenames, campaign, channel,
     from .mosaic import KeplerChannelMosaic
     output_fn = "{}{:02d}-ch{:02d}-cad{}.fits".format(output_prefix, campaign, channel, cadenceno)
     if verbose:
-        click.echo("Started writing {}".format(output_fn))
+        click.echo("\nStarted writing {}".format(output_fn))
     mosaic = KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
     if progressbar:
         with click.progressbar(tpf_filenames, label='Reading TPFs', show_pos=True) as bar:
@@ -193,7 +193,7 @@ def movie(filelist, output, rows, cols, fps, dpi, cut, cmap, ext, **kwargs):
 
     from .movie import KeplerMosaicMovie
     kmm = KeplerMosaicMovie(mosaic_filenames, colrange=colrange, rowrange=rowrange)
-    click.echo('Started writing {}'.format(output))
+    click.echo('\nStarted writing {}'.format(output))
     kmm.to_movie(output, extension=ext, fps=fps, dpi=dpi, cut=cut, cmap=cmap)
     click.secho('Finished writing {}'.format(output), fg='green')
 
