@@ -12,6 +12,7 @@ import glob
 import os
 import re
 
+import astropy
 from astropy.io import fits
 import fitsio
 import numpy as np
@@ -71,6 +72,9 @@ class KeplerChannelMosaic(object):
 
     def add_tpf(self, tpf_filename):
         #print("Adding {}".format(tpf_filename))
+        if tpf_filename.startswith("http"):
+            tpf_filename = astropy.utils.data.download_file(tpf_filename,
+                                                            cache=True)
         tpf = fitsio.FITS(tpf_filename)
         self.add_pixels(tpf)
         tpf.close()
