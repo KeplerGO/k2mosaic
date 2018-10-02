@@ -18,6 +18,9 @@ import fitsio
 import numpy as np
 import pandas as pd
 import click
+from astropy.io.fits.card import Undefined, UNDEFINED
+import datetime
+from astropy.time import Time
 
 from . import PACKAGEDIR, KEPLER_CHANNEL_SHAPE
 
@@ -36,7 +39,7 @@ class MosaicException(Exception):
 
 class KeplerChannelMosaic(object):
     """Factory for an artificial Kepler Full-Frame Channel Image."""
-    def __init__(self, campaign=0, channel=1, cadenceno=1, data_store=None, shape=KEPLER_CHANNEL_SHAPE):
+    def __init__(self, campaign=0, channel=1, cadenceno=1, data_store=None, shape=KEPLER_CHANNEL_SHAPE, bgsub=False, backapptpf=False):
         self.campaign = campaign
         self.channel = channel
         self.cadenceno = cadenceno
@@ -44,6 +47,12 @@ class KeplerChannelMosaic(object):
         self.header = fits.Header()
         self.data = np.empty(shape, dtype=np.float32)
         self.data[:] = np.nan
+        self.uncert = np.empty(shape, dtype=np.float32)
+        self.uncert[:] = np.nan
+        self.fluxcolumns = ['FLUX', 'FLUX_ERR']
+        self.bgsub = bgsub
+        self.backapptpf = backapptpf
+        self.backapp = backapptpf
 
     def gather_pixels(self):
         """Figures out the files needed and adds the pixels."""
@@ -71,7 +80,7 @@ class KeplerChannelMosaic(object):
                   'WCS information for campaign {} data.'.format(self.campaign))
 
     def add_tpf(self, tpf_filename):
-        #print("Adding {}".format(tpf_filename))
+        print("Adding {}".format(tpf_filename))
         if tpf_filename.startswith("http"):
             tpf_filename = astropy.utils.data.download_file(tpf_filename,
                                                             cache=True)
@@ -79,8 +88,8 @@ class KeplerChannelMosaic(object):
         self.add_pixels(tpf)
         tpf.close()
 
-    def add_pixels(self, tpf, fluxcolumn='FLUX'):
-        aperture_shape = tpf[1].read()[fluxcolumn][0].shape
+    def add_pixels(self, tpf):
+        aperture_shape = tpf[1].read()[self.fluxcolumns[0]][0].shape
         # Get the pixel coordinates of the corner of the aperture
         hdr_list = tpf[1].read_header_list()
         hdr = {elem['name']:elem['value'] for elem in hdr_list}
@@ -89,16 +98,105 @@ class KeplerChannelMosaic(object):
         # Fill the data
         mask = tpf[2].read() > 0
         idx = self.cadenceno - tpf[1].read()["CADENCENO"][0]
-        self.data[row:row+height, col:col+width][mask] = tpf[1].read()[fluxcolumn][idx][mask]
+        if (not self.bgsub and self.backapptpf): 
+            self.data[row:row+height, col:col+width][mask] = tpf[1].read()[self.fluxcolumns[0]][idx][mask] + tpf[1].read()['FLUX_BKG'][idx][mask]
+            self.uncert[row:row+height, col:col+width][mask] = np.sqrt((tpf[1].read()[self.fluxcolumn[1]][idx][mask])**2 + \
+                 (tpf[1].read()['FLUX_BKG'][idx][mask])**2)
+            self.backapp = False
+        else:
+            self.data[row:row+height, col:col+width][mask] = tpf[1].read()[self.fluxcolumns[0]][idx][mask]
+            self.uncert[row:row+height, col:col+width][mask] = tpf[1].read()[self.fluxcolumns[1]][idx][mask]
+
 
     def to_fits(self):
-        primary_hdu = fits.PrimaryHDU()
-        image_hdu = fits.ImageHDU(self.data, self.header)
-        hdulist = fits.HDUList([primary_hdu, image_hdu])
+        hdulist = self._hdulist()
         return hdulist
 
+    def _hdulist(self):
+        """Returns an astropy.io.fits.HDUList object."""
+        return fits.HDUList([self._make_primary_hdu(),
+                             self._make_image_extension(),
+                             self._make_uncert_extension(),
+                             self._make_cr_extension()])
+
+    def _make_primary_hdu(self):
+        hdu = fits.PrimaryHDU()
+        # Override the defaults where necessary
+
+        hdu.header['NEXTEND'] = 3
+        hdu.header.cards['NEXTEND'].comment = 'number of standard extensions'
+        hdu.header['EXTVER'] = 1
+        hdu.header.cards['EXTVER'].comment = 'extension version number (not format version)'
+        hdu.header['SIMDATA'] = False
+        hdu.header['ORIGIN'] = "NASA/Ames"
+        hdu.header['DATE'] = datetime.datetime.now().strftime("%Y-%m-%d")
+
+### Put tstart/stop and date-obs/end in here! How do we pull in time, and where do we store it??
+
+        hdu.header['CREATOR'] = "k2mosaic"
+        hdu.header.cards['CREATOR'].comment = 'file creator'
+        hdu.header['PROCVER'] = UNDEFINED
+        hdu.header.cards['PROCVER'].comment = 'SW version'
+        hdu.header['FILEVER'] = UNDEFINED
+        hdu.header.cards['FILEVER'].comment = 'file format version'
+        hdu.header['TIMVERSN'] = 'OGIP/93-003'
+        hdu.header.cards['TIMVERSN'].comment = 'OGIP memo number for file format' 
+        hdu.header['TELESCOP'] = 'Kepler'
+        hdu.header.cards['TELESCOP'].comment = 'telescope'
+        hdu.header['INSTRUME'] = 'Kepler Photometer'
+        hdu.header.cards['INSTRUME'].comment = 'detector type'
+        hdu.header['DATA_REL'] = 1
+        hdu.header.cards['DATA_REL'].comment = 'data release version number'
+
+        hdu.header['ASTATE'] = UNDEFINED
+        hdu.header['CAMPAIGN'] = self.campaign
+        hdu.header.cards['CAMPAIGN'].comment = 'Observing campaign number'
+        hdu.header['SCCONFIG'] = UNDEFINED
+        hdu.header.cards['SCCONFIG'].comment = 'commanded S/C configuration ID'
+        hdu.header['RADESYS'] = 'ICRS'
+        hdu.header.cards['RADESYS'].comment = 'reference frame of celestial coordinates'
+        hdu.header['EQUINOX'] = 2000.0
+        hdu.header.cards['EQUINOX'].comment = 'equinox of celestial coordinate system' 
+        hdu.header['CRMITEN'] = UNDEFINED
+        hdu.header.cards['CRMITEN'].comment = 'spacecraft cosmic ray mitigation enabled'
+        hdu.header['CRBLKSZ'] = UNDEFINED
+        hdu.header.cards['CRBLKSZ'].comment = 's/c cosmic ray mitigation block size'
+        hdu.header['CRSPOC'] = UNDEFINED
+        hdu.header.cards['CRSPOC'].comment = 'SPOC cosmic ray cleaning enabled'
+        hdu.header['MISSION'] = 'K2'
+        hdu.header.cards['MISSION'].comment = 'Mission name'
+
+        return hdu
+
+    def _make_image_extension(self):
+        """Create the image extension (i.e. extension #1)."""
+        hdu = fits.ImageHDU(self.data)
+
+        hdu.header['CADENCEN'] = self.cadenceno
+        hdu.header.cards['CADENCEN'].comment = 'unique cadence number'
+
+
+        return hdu
+
+    def _make_uncert_extension(self):
+        """Create the uncertainty extension (i.e. extension #2)."""
+        hdu = fits.ImageHDU(self.uncert)
+
+        return hdu
+
+    def _make_cr_extension(self):
+        """Create the cosmic ray extension (i.e. extension #3)."""
+        cols = []
+        cols.append(fits.Column(name='RAWX', format='I',disp='I4',array=np.array([])))
+        cols.append(fits.Column(name='RAWY', format='I',disp='I4',array=np.array([])))
+        cols.append(fits.Column(name='COSMIC_RAY', format='E',disp='E14.7',array=np.array([])))
+        coldefs = fits.ColDefs(cols)
+        hdu = fits.BinTableHDU.from_columns(coldefs)
+
+        return hdu
+
     def writeto(self, output_fn, overwrite=True):
-        self.to_fits().writeto(output_fn, overwrite=overwrite)
+        self.to_fits().writeto(output_fn, overwrite=overwrite,checksum=True)
 
 
 ###
