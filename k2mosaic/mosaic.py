@@ -115,8 +115,8 @@ class KeplerChannelMosaic(object):
     def _hdulist(self):
         """Returns an astropy.io.fits.HDUList object."""
         return fits.HDUList([self._make_primary_hdu(),
-                             self._make_image_extension(),
-                             self._make_uncert_extension(),
+                             self._make_image_extension('IMAGE', self.data),
+                             self._make_image_extension('UNCERTAINTY', self.uncert),
                              self._make_cr_extension()])
 
     def _make_primary_hdu(self):
@@ -168,19 +168,36 @@ class KeplerChannelMosaic(object):
 
         return hdu
 
-    def _make_image_extension(self):
-        """Create the image extension (i.e. extension #1)."""
-        hdu = fits.ImageHDU(self.data)
+    def _make_image_extension(self, extname, data):
+        """Create an image extension."""
+        hdu = fits.ImageHDU(data)
+
+        hdu.header['EXTNAME'] = extname
+        hdu.header.cards['EXTNAME'].comment = 'name of extension'
+        hdu.header['EXTVER'] = 1
+        hdu.header.cards['EXTVER'].comment = 'extension version number (not format version)'
+        hdu.header['TELESCOP'] = 'Kepler'
+        hdu.header.cards['TELESCOP'].comment = 'telescope'
+        hdu.header['INSTRUME'] = 'Kepler Photometer'
+        hdu.header.cards['INSTRUME'].comment = 'detector type'
+        hdu.header['CAMERA'] = UNDEFINED
+        hdu.header.cards['CAMERA'].comment = 'Camera number'
+        hdu.header['CCD'] = UNDEFINED
+        hdu.header.cards['CCD'].comment = 'CCD chip number'
+        hdu.header['CHANNEL'] =  self.channel
+        hdu.header.cards['CHANNEL'].comment =  'CCD channel'
+
+## Other keywords to include: TIMEREF, TASSIGN, TIMESYS, BJDREFI, BJDREFF, TSTART, TSTOP, TELAPSE, EXPOSURE, LIVETIME, 
+##  DEADC, TIMEPIXR, TIERRELA, INT_TIME, READTIME, FRAMETIM, TIMEDEL, DATE-OBS, DATE-END, BTC_PIX1, BTC_PIX2, BUNIT,
+##  BARYCORR, DEADAPP, VIGNAPP, TESS gain/readnoise/black keywords, NREADOUT, FXDOFF,
+##  RADESYS, EQUINOX, WCS keywords
+##  RA_NOM, DEC_NOM, ROLL_NOM, DQUALITY, IMAGTYPE
 
         hdu.header['CADENCEN'] = self.cadenceno
         hdu.header.cards['CADENCEN'].comment = 'unique cadence number'
-
-
-        return hdu
-
-    def _make_uncert_extension(self):
-        """Create the uncertainty extension (i.e. extension #2)."""
-        hdu = fits.ImageHDU(self.uncert)
+        
+        hdu.header['BACKAPP'] = self.backapp
+        hdu.header.cards['BACKAPP'].comment = 'background is subtracted'
 
         return hdu
 
