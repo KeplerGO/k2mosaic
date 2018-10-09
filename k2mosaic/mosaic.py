@@ -39,7 +39,8 @@ class MosaicException(Exception):
 
 class KeplerChannelMosaic(object):
     """Factory for an artificial Kepler Full-Frame Channel Image."""
-    def __init__(self, campaign=0, channel=1, cadenceno=1, data_store=None, shape=KEPLER_CHANNEL_SHAPE, bgsub=False, backapptpf=False):
+    def __init__(self, campaign=0, channel=1, cadenceno=1, data_store=None,
+                 shape=KEPLER_CHANNEL_SHAPE, add_background=False, time=None):
         self.campaign = campaign
         self.channel = channel
         self.cadenceno = cadenceno
@@ -49,10 +50,8 @@ class KeplerChannelMosaic(object):
         self.data[:] = np.nan
         self.uncert = np.empty(shape, dtype=np.float32)
         self.uncert[:] = np.nan
-        self.fluxcolumns = ['FLUX', 'FLUX_ERR']
-        self.bgsub = bgsub
-        self.backapptpf = backapptpf
-        self.backapp = backapptpf
+        self.add_background = add_background
+        self.time = time
 
     def gather_pixels(self):
         """Figures out the files needed and adds the pixels."""
@@ -64,7 +63,8 @@ class KeplerChannelMosaic(object):
                                show_pos=True) as bar:
             for url in bar:
                 if self.data_store is not None:
-                    path = url.replace("http://archive.stsci.edu/missions/k2/target_pixel_files", self.data_store)
+                    path = url.replace("http://archive.stsci.edu/missions/k2/target_pixel_files",
+                                       self.data_store)
                 else:
                     path = url
                 self.add_tpf(path)
@@ -97,16 +97,26 @@ class KeplerChannelMosaic(object):
         height, width = aperture_shape[0], aperture_shape[1]
         # Fill the data
         mask = tpf[2].read() > 0
-        idx = self.cadenceno - tpf[1].read()["CADENCENO"][0]
-        if (not self.bgsub and self.backapptpf): 
-            self.data[row:row+height, col:col+width][mask] = tpf[1].read()[self.fluxcolumns[0]][idx][mask] + tpf[1].read()['FLUX_BKG'][idx][mask]
-            self.uncert[row:row+height, col:col+width][mask] = np.sqrt((tpf[1].read()[self.fluxcolumn[1]][idx][mask])**2 + \
-                 (tpf[1].read()['FLUX_BKG'][idx][mask])**2)
-            self.backapp = False
-        else:
-            self.data[row:row+height, col:col+width][mask] = tpf[1].read()[self.fluxcolumns[0]][idx][mask]
-            self.uncert[row:row+height, col:col+width][mask] = tpf[1].read()[self.fluxcolumns[1]][idx][mask]
+        idx = self.cadf.cadenceno - tpf[1].read()["CADENCENO"][0]
 
+        if self.add_background:
+            self.data[row:row+height, col:col+width][mask] = \
+                tpf[1].read()['FLUX'][idx][mask] \
+                + tpf[1].read()['FLUX_BKG'][idx][mask]
+            self.uncert[row:row+height, col:col+width][mask] = \
+                        np.sqrt(
+                            (tpf[1].read()['FLUX_ERR'][idx][mask])**2 +
+                            (tpf[1].read()['FLUX_BKG_ERR'][idx][mask])**2
+                        )
+        else:
+            self.data[row:row+height, col:col+width][mask] = \
+                tpf[1].read()['FLUX'][idx][mask]
+            self.uncert[row:row+height, col:col+width][mask] = \
+                tpf[1].read()['FLUX_ERR'][idx][mask]
+
+        # If this is the first TPF being added, record the time
+        if self.time is None:
+            self.time = tpf[1].read()['TIME'][idx]
 
     def to_fits(self):
         hdulist = self._hdulist()
@@ -131,7 +141,9 @@ class KeplerChannelMosaic(object):
         hdu.header['ORIGIN'] = "NASA/Ames"
         hdu.header['DATE'] = datetime.datetime.now().strftime("%Y-%m-%d")
 
-### Put tstart/stop and date-obs/end in here! How do we pull in time, and where do we store it??
+        ### Put tstart/stop and date-obs/end in here! How do we pull in time, and where do we store it??
+        if self.time is not None:
+            pass  # compute the time values
 
         hdu.header['CREATOR'] = "k2mosaic"
         hdu.header.cards['CREATOR'].comment = 'file creator'
@@ -160,9 +172,9 @@ class KeplerChannelMosaic(object):
         hdu.header['CRMITEN'] = UNDEFINED
         hdu.header.cards['CRMITEN'].comment = 'spacecraft cosmic ray mitigation enabled'
         hdu.header['CRBLKSZ'] = UNDEFINED
-        hdu.header.cards['CRBLKSZ'].comment = 's/c cosmic ray mitigation block size'
+        hdu.header.cards['CRBLKSZ'].comment = 'TESS keyword not used by Kepler'
         hdu.header['CRSPOC'] = UNDEFINED
-        hdu.header.cards['CRSPOC'].comment = 'SPOC cosmic ray cleaning enabled'
+        hdu.header.cards['CRSPOC'].comment = 'TESS keyword not used by Kepler'
         hdu.header['MISSION'] = 'K2'
         hdu.header.cards['MISSION'].comment = 'Mission name'
 
@@ -185,7 +197,7 @@ class KeplerChannelMosaic(object):
         hdu.header['CCD'] = UNDEFINED
         hdu.header.cards['CCD'].comment = 'CCD chip number'
         hdu.header['CHANNEL'] =  self.channel
-        hdu.header.cards['CHANNEL'].comment =  'CCD channel'
+        hdu.header.cards['CHANNEL'].comment = 'CCD channel'
 
 ## Other keywords to include: TIMEREF, TASSIGN, TIMESYS, BJDREFI, BJDREFF, TSTART, TSTOP, TELAPSE, EXPOSURE, LIVETIME, 
 ##  DEADC, TIMEPIXR, TIERRELA, INT_TIME, READTIME, FRAMETIM, TIMEDEL, DATE-OBS, DATE-END, BTC_PIX1, BTC_PIX2, BUNIT,
@@ -195,8 +207,8 @@ class KeplerChannelMosaic(object):
 
         hdu.header['CADENCEN'] = self.cadenceno
         hdu.header.cards['CADENCEN'].comment = 'unique cadence number'
-        
-        hdu.header['BACKAPP'] = self.backapp
+
+        hdu.header['BACKAPP'] = ~self.add_background
         hdu.header.cards['BACKAPP'].comment = 'background is subtracted'
 
         return hdu
@@ -204,16 +216,15 @@ class KeplerChannelMosaic(object):
     def _make_cr_extension(self):
         """Create the cosmic ray extension (i.e. extension #3)."""
         cols = []
-        cols.append(fits.Column(name='RAWX', format='I',disp='I4',array=np.array([])))
-        cols.append(fits.Column(name='RAWY', format='I',disp='I4',array=np.array([])))
-        cols.append(fits.Column(name='COSMIC_RAY', format='E',disp='E14.7',array=np.array([])))
+        cols.append(fits.Column(name='RAWX', format='I', disp='I4', array=np.array([])))
+        cols.append(fits.Column(name='RAWY', format='I', disp='I4', array=np.array([])))
+        cols.append(fits.Column(name='COSMIC_RAY', format='E', disp='E14.7', array=np.array([])))
         coldefs = fits.ColDefs(cols)
         hdu = fits.BinTableHDU.from_columns(coldefs)
-
         return hdu
 
     def writeto(self, output_fn, overwrite=True):
-        self.to_fits().writeto(output_fn, overwrite=overwrite,checksum=True)
+        self.to_fits().writeto(output_fn, overwrite=overwrite, checksum=True)
 
 
 ###
