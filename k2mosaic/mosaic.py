@@ -89,7 +89,7 @@ class KeplerChannelMosaic(object):
         tpf.close()
 
     def add_pixels(self, tpf):
-        aperture_shape = tpf[1].read()[self.fluxcolumns[0]][0].shape
+        aperture_shape = tpf[1].read()['FLUX'][0].shape
         # Get the pixel coordinates of the corner of the aperture
         hdr_list = tpf[1].read_header_list()
         hdr = {elem['name']:elem['value'] for elem in hdr_list}
@@ -97,7 +97,7 @@ class KeplerChannelMosaic(object):
         height, width = aperture_shape[0], aperture_shape[1]
         # Fill the data
         mask = tpf[2].read() > 0
-        idx = self.cadf.cadenceno - tpf[1].read()["CADENCENO"][0]
+        idx = self.cadenceno - tpf[1].read()["CADENCENO"][0]
 
         if self.add_background:
             self.data[row:row+height, col:col+width][mask] = \
