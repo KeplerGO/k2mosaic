@@ -87,8 +87,8 @@ class KeplerChannelMosaic(object):
         col, row = int(hdr['1CRV5P']), int(hdr['2CRV5P'])
         height, width = aperture_shape[0], aperture_shape[1]
         # Fill the data
-        mask = tpf[2].read() > 0
         idx = self.cadenceno - tpf[1].read()["CADENCENO"][0]
+        mask = (tpf[2].read() > 0) & (~np.isnan(tpf[1].read()[fluxcolumn][idx]))
         self.data[row:row+height, col:col+width][mask] = tpf[1].read()[fluxcolumn][idx][mask]
 
     def to_fits(self):

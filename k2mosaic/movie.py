@@ -32,15 +32,14 @@ class KeplerMosaicMovieFrame(object):
         fts.close()
         if cut is None:
             cut = np.percentile(image[np.isfinite(image)], [10, 99.5])
-        image_scaled = visualization.scale_image(image, scale="log",
-                                                 min_cut=cut[0], max_cut=cut[1]) #min_percent=0.5, max_percent=99.5)
-
+        transform = visualization.LogStretch() + visualization.ManualInterval(vmin=cut[0], vmax=cut[1])
+        image_scaled = transform(image)
         px_per_kepler_px = 20
         dimensions = [image.shape[0] * px_per_kepler_px, image.shape[1] * px_per_kepler_px]
         figsize = [dimensions[1]/dpi, dimensions[0]/dpi]
         dpi = 440 / float(figsize[0])
         fig = pl.figure(figsize=figsize, dpi=dpi)
-        ax = fig.add_subplot(1, 1, 1, axisbg='green')
+        ax = fig.add_subplot(1, 1, 1)
         ax.matshow(image_scaled, aspect='auto',
                    cmap=cmap, origin='lower',
                    interpolation='nearest')
