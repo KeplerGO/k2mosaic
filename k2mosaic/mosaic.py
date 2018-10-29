@@ -116,7 +116,7 @@ class KeplerChannelMosaic(object):
 
         if self.add_background:
             self.data[row:row+height, col:col+width][mask] = \
-                tpfdata['FLUX'][idx][mask] \
+                tpfdata[FLUX'][idx][mask] \
                 + tpfdata['FLUX_BKG'][idx][mask]
             self.uncert[row:row+height, col:col+width][mask] = \
                         np.sqrt(
