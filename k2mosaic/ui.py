@@ -48,14 +48,15 @@ def _parse_mosaic_request(tpf_filenames, cadence='all', step=10):
                                 first_tpf[1].data['CADENCENO'][-1]),
                            err=True)
                 return
+
     return mission, campaign, channel, cadences_to_mosaic
 
 
-def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist,
+def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist, add_background,
                     output_prefix='', verbose=True, processes=None):
     """Mosaic a set of TPF files for a set of cadences."""
     task = partial(k2mosaic_mosaic_one, tpf_filenames=tpf_filenames,
-                   campaign=campaign, channel=channel,
+                   campaign=campaign, channel=channel, add_background=add_background,
                    output_prefix=output_prefix, verbose=verbose)
     if processes is None or processes > 1:  # Use parallel processing
         from multiprocessing import Pool
@@ -67,13 +68,15 @@ def k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist,
             [task(job) for job in iterable]
 
 
-def k2mosaic_mosaic_one(cadenceno, tpf_filenames, campaign, channel,
+def k2mosaic_mosaic_one(cadenceno, tpf_filenames, campaign, channel, add_background,
                         output_prefix='k2mosaic-c', progressbar=False, verbose=False):
+    """Create a mosaic fits file for one cadence."""
     from .mosaic import KeplerChannelMosaic
     output_fn = "{}{:02d}-ch{:02d}-cad{}.fits".format(output_prefix, campaign, channel, cadenceno)
     if verbose:
         click.echo("\nStarted writing {}".format(output_fn))
-    mosaic = KeplerChannelMosaic(campaign=campaign, channel=channel, cadenceno=cadenceno)
+    mosaic = KeplerChannelMosaic(campaign=campaign, channel=channel,
+                                 cadenceno=cadenceno, add_background=add_background)
     if progressbar:
         with click.progressbar(tpf_filenames, label='Reading TPFs', show_pos=True) as bar:
             [mosaic.add_tpf(tpf) for tpf in bar]
@@ -122,12 +125,14 @@ def tpflist(campaign, channel, sc, wget):
 @click.option('-s', '--step', type=click.IntRange(min=1),
               default=1, metavar='<N>',
               help='Only mosaic every Nth cadence (default: 1).')
+@click.option('--add-background', is_flag=True,
+              help='Add the background flux to the images')
 @click.option('-p', '--processes', type=click.IntRange(min=1),
               default=None, metavar='<CPUs>',
               help='Number of processes to use (default: #CPUs)')
 @click.option('-o', '--output', type=str, default=None,
               help='output filename prefix (default: k2mosaic-[cq])')
-def mosaic(filelist, cadence, step, processes, output):
+def mosaic(filelist, cadence, step, add_background, processes, output):
     """Mosaic a list of target pixel files."""
     tpf_filenames = [path.strip() for path in filelist.read().splitlines()]
     if tpf_filenames[0].endswith('gz'):
@@ -142,7 +147,7 @@ def mosaic(filelist, cadence, step, processes, output):
             output = 'k2mosaic-c'
         else:
             output = 'k2mosaic-q'
-    k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist,
+    k2mosaic_mosaic(tpf_filenames, mission, campaign, channel, cadencelist, add_background,
                     output_prefix=output, processes=processes)
 
 
