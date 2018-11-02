@@ -96,7 +96,7 @@ def k2mosaic(**kwargs):
 
 @k2mosaic.command(name='tpflist', short_help='List all target pixel files for a given campaign & CCD channel.')
 @click.argument('campaign', type=str)
-@click.argument('channel',type=click.IntRange(0, 84))
+@click.argument('channel', type=click.IntRange(0, 84))
 @click.option('--sc/--lc', is_flag=True,
               help='Short cadence or long cadence? (default: lc)')
 @click.option('--wget', is_flag=True,
