@@ -3,11 +3,11 @@ import os
 import sys
 from setuptools import setup
 
-if "testpublish" in sys.argv[-1]:
-    os.system("python setup.py sdist upload -r pypitest")
-    sys.exit()
-elif "publish" in sys.argv[-1]:
-    os.system("python setup.py sdist upload -r pypi")
+# Prepare and send a new release to PyPI
+if "release" in sys.argv[-1]:
+    os.system("python setup.py sdist")
+    os.system("twine upload dist/*")
+    os.system("rm -rf dist/k2mosaic*")
     sys.exit()
 
 # Load the __version__ variable without importing the package
