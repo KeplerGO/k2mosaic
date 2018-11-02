@@ -11,3 +11,6 @@ tmp
 
 # vim users
 .*.swp
+
+.pytest_cache
+
