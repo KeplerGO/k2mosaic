@@ -88,7 +88,7 @@ class KeplerChannelMosaic(object):
                   'WCS information for campaign {} data.'.format(self.campaign))
 
     def add_tpf(self, tpf_filename):
-        print("Adding {}".format(tpf_filename))
+        #print("Adding {}".format(tpf_filename))
         if tpf_filename.startswith("http"):
             tpf_filename = astropy.utils.data.download_file(tpf_filename, cache=True)
 
