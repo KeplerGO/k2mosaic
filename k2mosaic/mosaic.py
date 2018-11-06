@@ -224,25 +224,28 @@ class KeplerChannelMosaic(object):
         hdu.header['INSTRUME'] = 'Kepler Photometer'
         hdu.header.cards['INSTRUME'].comment = 'detector type'
         hdu.header['CAMERA'] = UNDEFINED
-        hdu.header.cards['CAMERA'].comment = 'Camera number'
+        hdu.header.cards['CAMERA'].comment = 'TESS keyword not used by Kepler '
         hdu.header['CCD'] = UNDEFINED
-        hdu.header.cards['CCD'].comment = 'CCD chip number'
+        hdu.header.cards['CCD'].comment = 'TESS keyword not used by Kepler'
         hdu.header['CHANNEL'] = self.channel
         hdu.header.cards['CHANNEL'].comment = 'CCD channel'
 
+        hdu.header.remove('PCOUNT')
+        hdu.header.remove('GCOUNT')
+
         for keyword in ['MODULE', 'OUTPUT']:
-            hdu.header[keyword] = self.primaryhdr[keyword]
-            hdu.header.cards[keyword].comment = self.primaryhdr.comments[keyword]
+            hdu.header[keyword] = self.template_tpf_header0[keyword]
+            hdu.header.cards[keyword].comment = self.template_tpf_header0.comments[keyword]
 
         hdu.header['CADENCEN'] = self.cadenceno
         hdu.header.cards['CADENCEN'].comment = 'unique cadence number'
 
         for keyword in ['TIMEREF', 'TASSIGN', 'TIMESYS', 'BJDREFI', 'BJDREFF', 'TIMEUNIT']:
-            hdu.header[keyword] = self.imagehdr[keyword]
-            hdu.header.cards[keyword].comment = self.imagehdr.comments[keyword]
+            hdu.header[keyword] = self.template_tpf_header1[keyword]
+            hdu.header.cards[keyword].comment = self.template_tpf_header1.comments[keyword]
 
-        frametim = np.float(self.imagehdr['FRAMETIM'])
-        num_frm = np.float(self.imagehdr['NUM_FRM'])
+        frametim = np.float(self.template_tpf_header1['FRAMETIM'])
+        num_frm = np.float(self.template_tpf_header1['NUM_FRM'])
 
         hdu.header['MIDTIME'] = self.time
         hdu.header.cards['MIDTIME'].comment = 'mid-time of exposure in BJD-BJDREF'
@@ -259,8 +262,8 @@ class KeplerChannelMosaic(object):
         for keyword in ['EXPOSURE', 'LIVETIME', 'DEADC', 'TIMEPIXR', 'TIERRELA',
                         'INT_TIME', 'READTIME', 'FRAMETIM',
                         'NUM_FRM', 'TIMEDEL', 'DEADAPP', 'VIGNAPP']:
-            hdu.header[keyword] = self.imagehdr[keyword]
-            hdu.header.cards[keyword].comment = self.imagehdr.comments[keyword]
+            hdu.header[keyword] = self.template_tpf_header1[keyword]
+            hdu.header.cards[keyword].comment = self.template_tpf_header1.comments[keyword]
 
         hdu.header['BUNIT'] = 'electrons/s'
         hdu.header.cards['BUNIT'].comment = 'physical units of image data'
@@ -279,8 +282,8 @@ class KeplerChannelMosaic(object):
         hdu.header.cards['BTC_PIX2'].comment = 'reference col for barycentric time correction'
 
         for keyword in ['GAIN', 'READNOIS', 'NREADOUT', 'MEANBLCK']:
-            hdu.header[keyword] = self.imagehdr[keyword]
-            hdu.header.cards[keyword].comment = self.imagehdr.comments[keyword]
+            hdu.header[keyword] = self.template_tpf_header1[keyword]
+            hdu.header.cards[keyword].comment = self.template_tpf_header1.comments[keyword]
 
         for keyword in ['GAINA', 'GAINB', 'GAINC', 'GAIND', 'READNOIA', 'READNOIB',
                         'READNOIC', 'READNOID', 'FXDOFF', 'MEANBLCA', 'MEANBLCB',
@@ -293,8 +296,8 @@ class KeplerChannelMosaic(object):
             hdu.header.cards[keyword].comment = 'TESS keyword not used by Kepler'
 
         for keyword in ['RADESYS', 'EQUINOX']:
-            hdu.header[keyword] = self.imagehdr[keyword]
-            hdu.header.cards[keyword].comment = self.imagehdr.comments[keyword]
+            hdu.header[keyword] = self.template_tpf_header1[keyword]
+            hdu.header.cards[keyword].comment = self.template_tpf_header1.comments[keyword]
 
         return hdu
 
