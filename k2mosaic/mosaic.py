@@ -92,10 +92,8 @@ class KeplerChannelMosaic(object):
         if tpf_filename.startswith("http"):
             tpf_filename = astropy.utils.data.download_file(tpf_filename, cache=True)
 
-        if self.template_tpf_header0 is None:
-            self.template_tpf_header0 = getheader(tpf_filename, 0)
-        if self.template_tpf_header1 is None:
-            self.template_tpf_header1 = getheader(tpf_filename, 1)
+        self.template_tpf_header0 = getheader(tpf_filename, 0)
+        self.template_tpf_header1 = getheader(tpf_filename, 1)
 
         tpf = fitsio.FITS(tpf_filename)
         self.add_pixels(tpf)
@@ -229,9 +227,6 @@ class KeplerChannelMosaic(object):
         hdu.header.cards['CCD'].comment = 'TESS keyword not used by Kepler'
         hdu.header['CHANNEL'] = self.channel
         hdu.header.cards['CHANNEL'].comment = 'CCD channel'
-
-        hdu.header.remove('PCOUNT')
-        hdu.header.remove('GCOUNT')
 
         for keyword in ['MODULE', 'OUTPUT']:
             hdu.header[keyword] = self.template_tpf_header0[keyword]
