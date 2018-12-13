@@ -184,7 +184,7 @@ class KeplerChannelMosaic(object):
         hdu.header.cards['DATE-END'].comment = 'TSTOP as UTC calendar date'
         hdu.header['MJD-BEG'] = self.mjdbeg
         hdu.header.cards['MJD-BEG'].comment = 'TSTART as modified barycentric Julian date'
-        hdu.header['MJD-end'] = self.mjdend
+        hdu.header['MJD-END'] = self.mjdend
         hdu.header.cards['MJD-END'].comment = 'TSTOP as modified barycentric Julian date'
         hdu.header['XPOSURE'] = int_time * num_frm
         hdu.header.cards['XPOSURE'].comment = '[s] time on source'
@@ -201,7 +201,7 @@ class KeplerChannelMosaic(object):
         hdu.header['INSTRUME'] = 'Kepler Photometer'
         hdu.header.cards['INSTRUME'].comment = 'detector type'
         hdu.header['FILTER'] = 'Kepler'
-        hdu.header.cards['FILTER'].comment = 'filter'
+        hdu.header.cards['FILTER'].comment = 'photometric passband'
         hdu.header['DATA_REL'] = 1
         hdu.header.cards['DATA_REL'].comment = 'data release version number'
 
@@ -278,7 +278,7 @@ class KeplerChannelMosaic(object):
         hdu.header['EXPOSURE'] = int_time/3600./24. * num_frm
         hdu.header.cards['EXPOSURE'].comment = '[d] time on source'
 
-        hdu.header['LIVETIME'] = frametim/3600./24. * num_frm * deadc
+        hdu.header['LIVETIME'] = hdu.header['TELAPSE'] * deadc
         hdu.header.cards['LIVETIME'].comment = '[d] TELAPSE multiplied by DEADC'
 
         for keyword in ['DEADC', 'TIMEPIXR', 'TIERRELA',
