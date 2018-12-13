@@ -43,7 +43,8 @@ class KeplerChannelMosaic(object):
     """Factory for an artificial Kepler Full-Frame Channel Image."""
     def __init__(self, campaign=0, channel=1, cadenceno=1, data_store=None,
                  shape=KEPLER_CHANNEL_SHAPE, add_background=False, time=None,
-                 dateobs=None, dateend=None, template_tpf_header0=None,
+                 quality=None, dateobs=None, dateend=None, mjdbeg=None, 
+                 mjdend=None, template_tpf_header0=None,
                  template_tpf_header1=None):
         self.campaign = campaign
         self.channel = channel
@@ -56,10 +57,13 @@ class KeplerChannelMosaic(object):
         self.uncert[:] = np.nan
         self.add_background = add_background
         self.time = time
+        self.quality = quality
         self.template_tpf_header0 = template_tpf_header0
         self.template_tpf_header1 = template_tpf_header1
         self.dateobs = dateobs
         self.dateend = dateend
+        self.mjdbeg = mjdbeg
+        self.mjdend = mjdend
 
     def gather_pixels(self):
         """Figures out the files needed and adds the pixels."""
@@ -128,6 +132,7 @@ class KeplerChannelMosaic(object):
         # If this is the first TPF being added, record the time and calculate DATE-OBS/END
         if self.time is None:
             self.time = tpfdata['TIME'][idx]
+            self.quality = tpfdata['QUALITY'][idx]
             frametim = np.float(self.template_tpf_header1['FRAMETIM'])
             num_frm = np.float(self.template_tpf_header1['NUM_FRM'])
 
@@ -136,6 +141,7 @@ class KeplerChannelMosaic(object):
                 + np.float(self.template_tpf_header1['BJDREFI']) \
                 - frametim/3600./24./2. * num_frm \
                 - 2400000.5
+            self.mjdbeg = mjd_start
             starttime = Time(mjd_start, format='mjd')
             starttime = str(starttime.datetime)
             self.dateobs = starttime.replace(' ', 'T') + 'Z'
@@ -145,6 +151,7 @@ class KeplerChannelMosaic(object):
                 + np.float(self.template_tpf_header1['BJDREFI']) \
                 + frametim/3600./24./2. * num_frm \
                 - 2400000.5
+            self.mjdend = mjd_end
             endtime = Time(mjd_end, format='mjd')
             endtime = str(endtime.datetime)
             self.dateend = endtime.replace(' ', 'T') + 'Z'
@@ -158,6 +165,10 @@ class KeplerChannelMosaic(object):
 
     def _make_primary_hdu(self):
         hdu = fits.PrimaryHDU()
+
+        int_time = np.float(self.template_tpf_header1['INT_TIME'])
+        num_frm = np.float(self.template_tpf_header1['NUM_FRM'])
+
         # Override the defaults where necessary
         hdu.header['NEXTEND'] = 3
         hdu.header.cards['NEXTEND'].comment = 'number of standard extensions'
@@ -171,6 +182,12 @@ class KeplerChannelMosaic(object):
         hdu.header.cards['DATE-OBS'].comment = 'TSTART as UTC calendar date'
         hdu.header['DATE-END'] = self.dateend
         hdu.header.cards['DATE-END'].comment = 'TSTOP as UTC calendar date'
+        hdu.header['MJD-BEG'] = self.mjdbeg
+        hdu.header.cards['MJD-BEG'].comment = 'TSTART as modified barycentric Julian date'
+        hdu.header['MJD-end'] = self.mjdend
+        hdu.header.cards['MJD-END'].comment = 'TSTOP as modified barycentric Julian date'
+        hdu.header['XPOSURE'] = int_time * num_frm
+        hdu.header.cards['XPOSURE'].comment = '[s] time on source'
         hdu.header['CREATOR'] = "k2mosaic"
         hdu.header.cards['CREATOR'].comment = 'file creator'
         hdu.header['PROCVER'] = UNDEFINED
@@ -183,6 +200,8 @@ class KeplerChannelMosaic(object):
         hdu.header.cards['TELESCOP'].comment = 'telescope'
         hdu.header['INSTRUME'] = 'Kepler Photometer'
         hdu.header.cards['INSTRUME'].comment = 'detector type'
+        hdu.header['FILTER'] = 'Kepler'
+        hdu.header.cards['FILTER'].comment = 'filter'
         hdu.header['DATA_REL'] = 1
         hdu.header.cards['DATA_REL'].comment = 'data release version number'
 
@@ -240,7 +259,9 @@ class KeplerChannelMosaic(object):
             hdu.header.cards[keyword].comment = self.template_tpf_header1.comments[keyword]
 
         frametim = np.float(self.template_tpf_header1['FRAMETIM'])
+        int_time = np.float(self.template_tpf_header1['INT_TIME'])
         num_frm = np.float(self.template_tpf_header1['NUM_FRM'])
+        deadc = np.float(self.template_tpf_header1['DEADC'])
 
         hdu.header['MIDTIME'] = self.time
         hdu.header.cards['MIDTIME'].comment = 'mid-time of exposure in BJD-BJDREF'
@@ -254,7 +275,13 @@ class KeplerChannelMosaic(object):
         hdu.header['TELAPSE'] = frametim/3600./24. * num_frm
         hdu.header.cards['TELAPSE'].comment = '[d] TSTOP - TSTART'
 
-        for keyword in ['EXPOSURE', 'LIVETIME', 'DEADC', 'TIMEPIXR', 'TIERRELA',
+        hdu.header['EXPOSURE'] = int_time/3600./24. * num_frm
+        hdu.header.cards['EXPOSURE'].comment = '[d] time on source'
+
+        hdu.header['LIVETIME'] = frametim/3600./24. * num_frm * deadc
+        hdu.header.cards['LIVETIME'].comment = '[d] TELAPSE multiplied by DEADC'
+
+        for keyword in ['DEADC', 'TIMEPIXR', 'TIERRELA',
                         'INT_TIME', 'READTIME', 'FRAMETIM',
                         'NUM_FRM', 'TIMEDEL', 'DEADAPP', 'VIGNAPP']:
             hdu.header[keyword] = self.template_tpf_header1[keyword]
@@ -289,6 +316,9 @@ class KeplerChannelMosaic(object):
         for keyword in ['RA_NOM', 'DEC_NOM', 'ROLL_NOM', 'DQUALITY', 'IMAGTYPE']:
             hdu.header[keyword] = UNDEFINED
             hdu.header.cards[keyword].comment = 'TESS keyword not used by Kepler'
+
+        hdu.header['QUALITY'] = self.quality
+        hdu.header.cards['QUALITY'].comment = 'data quality flags'
 
         for keyword in ['RADESYS', 'EQUINOX']:
             hdu.header[keyword] = self.template_tpf_header1[keyword]
