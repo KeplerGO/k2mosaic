@@ -114,6 +114,10 @@ class KeplerChannelMosaic(object):
         mask = tpf[2].read() > 0
         idx = self.cadenceno - tpfdata["CADENCENO"][0]
 
+        # When time is nan, we know that there is no available data.
+        if np.isnan(tpfdata['TIME'][idx]):
+            raise Exception('Error: Cadence {} does not appear to contain data!'.format(self.cadenceno))
+
         if self.add_background:
             self.data[row:row+height, col:col+width][mask] = \
                 tpfdata['FLUX'][idx][mask] \
