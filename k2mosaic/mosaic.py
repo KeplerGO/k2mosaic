@@ -114,6 +114,10 @@ class KeplerChannelMosaic(object):
         mask = tpf[2].read() > 0
         idx = self.cadenceno - tpfdata["CADENCENO"][0]
 
+        # When time is nan, we know that there is no available data.
+        if np.isnan(tpfdata['TIME'][idx]):
+            raise Exception('Error: Cadence {} does not appear to contain data!'.format(self.cadenceno))
+
         if self.add_background:
             self.data[row:row+height, col:col+width][mask] = \
                 tpfdata['FLUX'][idx][mask] \
@@ -172,6 +176,8 @@ class KeplerChannelMosaic(object):
         # Override the defaults where necessary
         hdu.header['NEXTEND'] = 3
         hdu.header.cards['NEXTEND'].comment = 'number of standard extensions'
+        hdu.header['EXTNAME'] = 'PRIMARY'
+        hdu.header.cards['EXTNAME'].comment = 'name of extension'
         hdu.header['EXTVER'] = 1
         hdu.header.cards['EXTVER'].comment = 'extension version number (not format version)'
         hdu.header['ORIGIN'] = "NASA/Ames"
@@ -202,7 +208,7 @@ class KeplerChannelMosaic(object):
         hdu.header.cards['INSTRUME'].comment = 'detector type'
         hdu.header['FILTER'] = 'Kepler'
         hdu.header.cards['FILTER'].comment = 'photometric passband'
-        hdu.header['DATA_REL'] = 1
+        hdu.header['DATA_REL'] = UNDEFINED
         hdu.header.cards['DATA_REL'].comment = 'data release version number'
 
         hdu.header['ASTATE'] = UNDEFINED

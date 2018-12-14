@@ -77,16 +77,19 @@ def k2mosaic_mosaic_one(cadenceno, tpf_filenames, campaign, channel, add_backgro
         click.echo("\nStarted writing {}".format(output_fn))
     mosaic = KeplerChannelMosaic(campaign=campaign, channel=channel,
                                  cadenceno=cadenceno, add_background=add_background)
-    if progressbar:
-        with click.progressbar(tpf_filenames, label='Reading TPFs', show_pos=True) as bar:
-            [mosaic.add_tpf(tpf) for tpf in bar]
-    else:
-        [mosaic.add_tpf(tpf) for tpf in tpf_filenames]
-    mosaic.add_wcs()
-    mosaic.writeto(output_fn)
-    if verbose:
-        click.secho('Finished writing {}'.format(output_fn), fg='green')
 
+    try:
+        if progressbar:
+            with click.progressbar(tpf_filenames, label='Reading TPFs', show_pos=True) as bar:
+                [mosaic.add_tpf(tpf) for tpf in bar]
+        else:
+            [mosaic.add_tpf(tpf) for tpf in tpf_filenames]
+        mosaic.add_wcs()
+        mosaic.writeto(output_fn)
+        if verbose:
+            click.secho('Finished writing {}'.format(output_fn), fg='green')
+    except Exception as e:
+        click.secho('{}'.format(e), fg='red')
 
 @click.group(context_settings=CONTEXT_SETTINGS)
 @click.version_option(version=__version__)
