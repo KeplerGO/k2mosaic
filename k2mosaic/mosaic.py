@@ -115,7 +115,7 @@ class KeplerChannelMosaic(object):
         idx = self.cadenceno - tpfdata["CADENCENO"][0]
 
         # When time is nan, we know that there is no available data.
-        if np.isnan(tpfdata['TIME'][idx]):
+        if (tpfdata['QUALITY'][idx] & int(65536) > 0): 
             raise Exception('Error: Cadence {} does not appear to contain data!'.format(self.cadenceno))
 
         if self.add_background:
