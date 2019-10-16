@@ -100,7 +100,6 @@ class KeplerChannelMosaic(object):
         self.template_tpf_header1 = getheader(tpf_filename, 1)
 
         tpf = fitsio.FITS(tpf_filename)
-        print(tpf_filename)
         self.add_pixels(tpf)
         tpf.close()
 
