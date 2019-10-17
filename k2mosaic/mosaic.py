@@ -114,7 +114,7 @@ class KeplerChannelMosaic(object):
         mask = tpf[2].read() > 0
         idx = self.cadenceno - tpfdata["CADENCENO"][0]
 
-        # When time is nan, we know that there is no available data.
+        # When quality flag 65536 is raised, there is no data and the times are NaN.
         if (tpfdata['QUALITY'][idx] & int(65536) > 0): 
             raise Exception('Error: Cadence {} does not appear to contain data!'.format(self.cadenceno))
 
